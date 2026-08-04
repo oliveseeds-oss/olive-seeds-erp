@@ -1,0 +1,31 @@
+# Dependency directories
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Environment files
+.env
+backend/.env
+frontend/.env
+
+# Production builds
+frontend/build/
+frontend/dist/
+backend/frontend/dist/
+
+# Android build outputs
+android/.gradle/
+android/app/build/
+android/local.properties
+.gradle/
+*.apk
+
+# System/IDE files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local/tooling logs
+*.log
+.gemini/
