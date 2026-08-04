@@ -1,0 +1,9 @@
+{
+  "short_name": "OliveSeeds ERP",
+  "name": "Olive Seeds Design Studio ERP",
+  "icons": [],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#1a5276",
+  "background_color": "#ffffff"
+}
