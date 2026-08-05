@@ -1,0 +1,36 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: olive-seeds-erp-backend
+    restart: always
+    ports:
+      - "5001:5001"
+    environment:
+      PORT: 5001
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: Christ7ak5oss
+      DB_NAME: olive_seeds_erp
+    networks:
+      - erp-network
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: olive-seeds-erp-frontend
+    restart: always
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      CHOKIDAR_USEPOLLING: "true"
+    depends_on:
+      - backend
+    networks:
+      - erp-network
+
+networks:
+  erp-network:
+    driver: bridge
