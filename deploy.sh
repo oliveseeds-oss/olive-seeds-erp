@@ -25,7 +25,7 @@ DB_NAME="olive_seeds_erp"
 DB_USER="oliveuser"
 DB_PASS="OliveSeeds@2024!"
 JWT_SECRET=$(openssl rand -hex 32)
-NODE_PORT=5000
+NODE_PORT=5001
 # ------------------------------
 
 echo "📦 Step 1: Updating system packages..."

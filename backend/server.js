@@ -53,7 +53,7 @@ app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
     res.sendFile(path.join(__dirname, '../frontend/build/index.html'), (err) => {
       if (err) {
-        res.status(404).send("Frontend build not found. Please run 'npm run build' in the frontend folder or use the dev server at http://localhost:3000.");
+        res.status(404).send("Frontend build not found. Please run 'npm run build' in the frontend folder or use the dev server at http://localhost:3002.");
       }
     });
   }

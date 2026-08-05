@@ -97,7 +97,7 @@ server {
     client_max_body_size 50M;
 
     location / {
-        proxy_pass http://localhost:5000;
+        proxy_pass http://localhost:5001;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -285,7 +285,7 @@ cd android
 ## 🔧 ENVIRONMENT VARIABLES (.env)
 
 ```env
-PORT=5000
+PORT=5001
 DB_HOST=localhost
 DB_USER=oliveuser
 DB_PASSWORD=YourPassword
@@ -327,7 +327,7 @@ npm install pdfkit  # in backend folder
 
 ## 📞 SUPPORT NOTES
 
-- Backend runs on port 5000 (configurable in .env)
+- Backend runs on port 5001 (configurable in .env)
 - Frontend is served by the backend as static files
 - MySQL on localhost:3306 (default)
 - PM2 auto-restarts backend on crash
