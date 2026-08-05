@@ -7,6 +7,9 @@ const rateLimit = require('express-rate-limit');
 
 const app = express();
 
+// Trust proxy for rate limiter
+app.set('trust proxy', 1);
+
 // Security
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
@@ -45,12 +48,16 @@ app.use('/api/changes', require('./routes/changes'));
 app.get('/api/health', (req, res) => res.json({ status: 'OK', time: new Date() }));
 
 // Serve frontend in production
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+app.use(express.static(path.join(__dirname, '../frontend/build')));
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+    res.sendFile(path.join(__dirname, '../frontend/build/index.html'), (err) => {
+      if (err) {
+        res.status(404).send("Frontend build not found. Please run 'npm run build' in the frontend folder or use the dev server at http://localhost:3000.");
+      }
+    });
   }
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Olive Seeds ERP running on port ${PORT}`));

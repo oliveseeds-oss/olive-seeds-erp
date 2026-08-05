@@ -28,6 +28,7 @@ router.post('/login', async (req, res) => {
       user: { id: user.id, user_id: user.user_id, name: user.name, email: user.email, role: user.role }
     });
   } catch (err) {
+    console.error('LOGIN ERROR:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
