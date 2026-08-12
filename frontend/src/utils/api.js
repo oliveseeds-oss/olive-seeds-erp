@@ -2,25 +2,44 @@ import axios from 'axios';
 
 const BASE_URL = process.env.REACT_APP_API_URL || '';
 
-const api = axios.create({ baseURL: `${BASE_URL}/api`, timeout: 30000 });
-
-// Attach token
-api.interceptors.request.use(config => {
-  const token = localStorage.getItem('os_token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
+const api = axios.create({
+  baseURL: `${BASE_URL}/api`,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json'
+  }
 });
 
-// Handle auth errors
+// Request interceptor — attach token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('os_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    // Do not set Content-Type for multipart (let browser set boundary)
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor — handle auth errors
 api.interceptors.response.use(
-  res => res,
-  err => {
-    if (err.response?.status === 401) {
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Clear auth state
       localStorage.removeItem('os_token');
       localStorage.removeItem('os_user');
-      window.location.href = '/login';
+      // Only redirect if not already on login page
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
     }
-    return Promise.reject(err);
+    return Promise.reject(error);
   }
 );
 

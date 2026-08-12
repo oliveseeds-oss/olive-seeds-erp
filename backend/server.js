@@ -1,4 +1,4 @@
-require('dotenv').config({ path: require('path').join(__dirname, '.env') });
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -6,8 +6,9 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 
 const app = express();
+const compression = require('compression');
+app.use(compression());
 
-// Trust proxy for rate limiter
 app.set('trust proxy', 1);
 
 // Security
@@ -23,7 +24,9 @@ app.use('/api/', limiter);
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  maxAge: '7d'
+}));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -43,6 +46,16 @@ app.use('/api/bulk', require('./routes/bulk'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/changes', require('./routes/changes'));
+app.use('/api/digital-invoices', require('./routes/digital-invoices'));
+app.use('/api/quick-bill', require('./routes/quick_bill'));
+app.use('/api/backup', require('./routes/backup'));
+app.use('/api/files', require('./routes/files'));
+app.use('/api/quotations', require('./routes/quotations'));
+app.use('/api/import-export', require('./routes/importExport'));
+app.use('/api/categories', require('./routes/categories'));
+
+// Run database migrations on startup
+require('./utils/migrate')();
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'OK', time: new Date() }));
@@ -51,13 +64,9 @@ app.get('/api/health', (req, res) => res.json({ status: 'OK', time: new Date() }
 app.use(express.static(path.join(__dirname, '../frontend/build')));
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, '../frontend/build/index.html'), (err) => {
-      if (err) {
-        res.status(404).send("Frontend build not found. Please run 'npm run build' in the frontend folder or use the dev server at http://localhost:3002.");
-      }
-    });
+    res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
   }
 });
 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Olive Seeds ERP running on port ${PORT}`));

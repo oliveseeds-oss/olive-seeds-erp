@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import api from '../utils/api';
-import { Card, PageHeader, Btn, Table, Spinner, fmt } from '../components/UI';
+import { Card, PageHeader, Btn, TableSkeleton, fmt, Select, showToast } from '../components/UI';
+import ExportButton from '../components/ExportButton';
 
 export default function GSTReports() {
   const now = new Date();
-  const [month, setMonth] = useState(now.getMonth()+1);
+  const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [tab, setTab] = useState('gstr1');
   const [data, setData] = useState(null);
@@ -13,108 +14,214 @@ export default function GSTReports() {
   const fetchReport = async () => {
     setLoading(true);
     try {
-      const { data: d } = await api.get(`/gst/${tab}?month=${month}&year=${year}`);
-      setData(d);
-    } catch(e) {}
-    setLoading(false);
+      const res = await api.get(`/gst/${tab}?month=${month}&year=${year}`);
+      setData(res.data);
+      showToast('GST Report generated successfully', 'success');
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Failed to generate GST report', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const exportExcel = () => {
-    if (!data) return;
-    const rows = tab==='gstr1' ? (data.b2b||[]) : [];
-    const csv = [Object.keys(rows[0]||{}).join(','), ...rows.map(r=>Object.values(r).join(','))].join('\n');
-    const a = document.createElement('a');
-    a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-    a.download = `${tab}_${year}_${month}.csv`;
-    a.click();
-  };
-
-  const b2bCols = [
-    { label:'GSTIN', key:'gstin' }, { label:'Customer', key:'customer_name' },
-    { label:'Invoice No', key:'invoice_number' }, { label:'Total', render:r=>fmt(r.total) },
-    { label:'CGST', render:r=>fmt(r.cgst) }, { label:'SGST', render:r=>fmt(r.sgst) },
-    { label:'IGST', render:r=>fmt(r.igst) }, { label:'Tax', render:r=>fmt(r.total_tax) }
-  ];
 
   return (
-    <div>
-      <PageHeader title="📑 GST Reports" subtitle="GSTR-1 and GSTR-3B summaries"
-        actions={<Btn variant="success" onClick={exportExcel} disabled={!data}>⬇️ Export CSV</Btn>} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      
+      <PageHeader 
+        title="GST Reports"
+        actions={
+          <Btn variant="primary" onClick={fetchReport} disabled={loading}>
+            {loading ? 'Generating...' : 'Generate Report'}
+          </Btn>
+        }
+      />
 
-      <Card style={{marginBottom:16}}>
-        <div style={{display:'flex',gap:12,alignItems:'flex-end',flexWrap:'wrap'}}>
-          <div>
-            <label style={{fontSize:12,fontWeight:600,display:'block',marginBottom:3}}>Month</label>
-            <select value={month} onChange={e=>setMonth(e.target.value)} style={{border:'1px solid var(--border)',borderRadius:6,padding:'7px 10px',fontSize:13}}>
-              {Array.from({length:12},(_,i)=><option key={i+1} value={i+1}>{new Date(2000,i).toLocaleString('default',{month:'long'})}</option>)}
-            </select>
-          </div>
-          <div>
-            <label style={{fontSize:12,fontWeight:600,display:'block',marginBottom:3}}>Year</label>
-            <select value={year} onChange={e=>setYear(e.target.value)} style={{border:'1px solid var(--border)',borderRadius:6,padding:'7px 10px',fontSize:13}}>
-              {[2023,2024,2025,2026].map(y=><option key={y}>{y}</option>)}
-            </select>
-          </div>
-          <div style={{display:'flex',gap:8}}>
-            {[['gstr1','GSTR-1'],['gstr3b','GSTR-3B'],['hsn','HSN Summary']].map(([k,l])=>(
-              <button key={k} onClick={()=>setTab(k)} style={{padding:'7px 14px',borderRadius:7,border:'none',background:tab===k?'var(--primary)':'#e2e8f0',color:tab===k?'#fff':'#555',fontWeight:600,fontSize:13,cursor:'pointer'}}>{l}</button>
+      {/* Filter Bar */}
+      <Card style={{ padding: '12px 20px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <select
+            value={month}
+            onChange={(e) => setMonth(parseInt(e.target.value))}
+            style={{
+              padding: '8px 12px',
+              fontSize: '13px',
+              border: '1px solid #D1D5DB',
+              borderRadius: '6px',
+              backgroundColor: '#FFFFFF',
+              color: '#111827'
+            }}
+          >
+            {Array.from({ length: 12 }, (_, i) => (
+              <option key={i + 1} value={i + 1}>
+                {new Date(2000, i).toLocaleString('default', { month: 'long' })}
+              </option>
             ))}
+          </select>
+
+          <select
+            value={year}
+            onChange={(e) => setYear(parseInt(e.target.value))}
+            style={{
+              padding: '8px 12px',
+              fontSize: '13px',
+              border: '1px solid #D1D5DB',
+              borderRadius: '6px',
+              backgroundColor: '#FFFFFF',
+              color: '#111827'
+            }}
+          >
+            {[2023, 2024, 2025, 2026].map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+
+          <select
+            value={tab}
+            onChange={(e) => { setTab(e.target.value); setData(null); }}
+            style={{
+              padding: '8px 12px',
+              fontSize: '13px',
+              border: '1px solid #D1D5DB',
+              borderRadius: '6px',
+              backgroundColor: '#FFFFFF',
+              color: '#111827'
+            }}
+          >
+            <option value="gstr1">GSTR-1</option>
+            <option value="gstr3b">GSTR-3B</option>
+            <option value="hsn">HSN Summary</option>
+          </select>
+
+          <div style={{ marginLeft: 'auto' }}>
+            {data && <ExportButton data={tab === 'hsn' ? data : (data.b2b || [])} pageName={`GST_${tab}`} />}
           </div>
-          <Btn onClick={fetchReport}>📊 Generate</Btn>
         </div>
       </Card>
 
-      {loading && <Spinner />}
+      {/* Report Summary Data Table */}
+      {loading ? (
+        <Card><TableSkeleton cols={5} rows={5} /></Card>
+      ) : !data ? (
+        <Card style={{ padding: '24px', textAlign: 'center', color: '#6B7280' }}>
+          Select parameters and click "Generate Report" to view GST data.
+        </Card>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {tab === 'gstr1' && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+                <Card>
+                  <div style={{ fontSize: '12px', color: '#6B7280' }}>Taxable Value</div>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginTop: '4px' }}>{fmt(data.totals?.subtotal || 0)}</div>
+                </Card>
+                <Card>
+                  <div style={{ fontSize: '12px', color: '#6B7280' }}>CGST Collected</div>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginTop: '4px' }}>{fmt(data.totals?.cgst || 0)}</div>
+                </Card>
+                <Card>
+                  <div style={{ fontSize: '12px', color: '#6B7280' }}>SGST Collected</div>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginTop: '4px' }}>{fmt(data.totals?.sgst || 0)}</div>
+                </Card>
+                <Card>
+                  <div style={{ fontSize: '12px', color: '#6B7280' }}>IGST Collected</div>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginTop: '4px' }}>{fmt(data.totals?.igst || 0)}</div>
+                </Card>
+              </div>
 
-      {data && !loading && (
-        <>
-          {tab==='gstr1' && (
-            <div style={{display:'flex',flexDirection:'column',gap:16}}>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
-                {[['Taxable', fmt(data.totals?.subtotal)],['CGST', fmt(data.totals?.cgst)],['SGST', fmt(data.totals?.sgst)],['IGST', fmt(data.totals?.igst)]].map(([l,v])=>(
-                  <Card key={l}><p style={{fontSize:12,color:'var(--muted)'}}>{l}</p><p style={{fontSize:20,fontWeight:700,color:'var(--primary)'}}>{v}</p></Card>
-                ))}
-              </div>
-              <Card><h3 style={{fontSize:14,fontWeight:700,marginBottom:12}}>B2B Invoices (GST Registered)</h3><Table cols={b2bCols} rows={data.b2b||[]} emptyMsg="No B2B invoices this period" /></Card>
-              <Card>
-                <h3 style={{fontSize:14,fontWeight:700,marginBottom:12}}>B2C Summary (Unregistered)</h3>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
-                  {[['Taxable',fmt(data.b2c?.taxable)],['CGST',fmt(data.b2c?.cgst)],['SGST',fmt(data.b2c?.sgst)],['IGST',fmt(data.b2c?.igst)]].map(([l,v])=>(
-                    <div key={l} style={{padding:12,background:'#f8fafc',borderRadius:8}}><p style={{fontSize:12,color:'var(--muted)'}}>{l}</p><p style={{fontSize:16,fontWeight:700}}>{v}</p></div>
-                  ))}
-                </div>
+              <Card style={{ padding: '0px', overflowX: 'auto' }}>
+                <div style={{ padding: '16px', fontWeight: '700', borderBottom: '1px solid #E5E7EB' }}>B2B Invoices</div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', textAlign: 'left' }}>
+                      <th style={{ padding: '12px 16px', color: '#6B7280' }}>GSTIN</th>
+                      <th style={{ padding: '12px 16px', color: '#6B7280' }}>Customer</th>
+                      <th style={{ padding: '12px 16px', color: '#6B7280' }}>Invoice No</th>
+                      <th style={{ padding: '12px 16px', color: '#6B7280' }}>Total</th>
+                      <th style={{ padding: '12px 16px', color: '#6B7280' }}>CGST</th>
+                      <th style={{ padding: '12px 16px', color: '#6B7280' }}>SGST</th>
+                      <th style={{ padding: '12px 16px', color: '#6B7280' }}>IGST</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(data.b2b || []).length === 0 ? (
+                      <tr>
+                        <td colSpan={7} style={{ padding: '20px', textAlign: 'center', color: '#6B7280' }}>No B2B invoices found.</td>
+                      </tr>
+                    ) : (
+                      (data.b2b || []).map((row, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid #E5E7EB' }}>
+                          <td style={{ padding: '12px 16px', fontWeight: 600 }}>{row.gstin}</td>
+                          <td style={{ padding: '12px 16px' }}>{row.customer_name}</td>
+                          <td style={{ padding: '12px 16px' }}>{row.invoice_number}</td>
+                          <td style={{ padding: '12px 16px', fontWeight: '700' }}>{fmt(row.total)}</td>
+                          <td style={{ padding: '12px 16px' }}>{fmt(row.cgst)}</td>
+                          <td style={{ padding: '12px 16px' }}>{fmt(row.sgst)}</td>
+                          <td style={{ padding: '12px 16px' }}>{fmt(row.igst)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </Card>
-            </div>
+            </>
           )}
-          {tab==='gstr3b' && (
-            <div style={{display:'flex',flexDirection:'column',gap:16}}>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
-                {[['Total GST Collected',fmt(data.outward?.tax),'var(--danger)'],['Input Tax Credit',fmt(data.input_credit),'var(--accent)'],['Net Tax Payable',fmt(data.net_tax_payable),'var(--primary)']].map(([l,v,c])=>(
-                  <Card key={l}><p style={{fontSize:12,color:'var(--muted)'}}>{l}</p><p style={{fontSize:22,fontWeight:700,color:c}}>{v}</p></Card>
-                ))}
+
+          {tab === 'gstr3b' && (
+            <Card style={{ padding: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                <Card>
+                  <div style={{ fontSize: '12px', color: '#6B7280' }}>Total Outward Tax</div>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: '#DC2626', marginTop: '4px' }}>{fmt(data.outward?.tax || 0)}</div>
+                </Card>
+                <Card>
+                  <div style={{ fontSize: '12px', color: '#6B7280' }}>Input Tax Credit</div>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: '#16A34A', marginTop: '4px' }}>{fmt(data.input_credit || 0)}</div>
+                </Card>
+                <Card>
+                  <div style={{ fontSize: '12px', color: '#6B7280' }}>Net Tax Payable</div>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: '#1A1A2E', marginTop: '4px' }}>{fmt(data.net_tax_payable || 0)}</div>
+                </Card>
               </div>
-              <Card>
-                <h3 style={{fontSize:14,fontWeight:700,marginBottom:12}}>Outward Supplies Summary</h3>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
-                  {[['Taxable',fmt(data.outward?.taxable)],['CGST',fmt(data.outward?.cgst)],['SGST',fmt(data.outward?.sgst)],['IGST',fmt(data.outward?.igst)]].map(([l,v])=>(
-                    <div key={l} style={{padding:12,background:'#f8fafc',borderRadius:8}}><p style={{fontSize:12,color:'var(--muted)'}}>{l}</p><p style={{fontSize:16,fontWeight:700}}>{v}</p></div>
-                  ))}
-                </div>
-              </Card>
-            </div>
-          )}
-          {tab==='hsn' && (
-            <Card>
-              <h3 style={{fontSize:14,fontWeight:700,marginBottom:12}}>HSN-wise Summary</h3>
-              <Table cols={[
-                {label:'HSN Code',key:'hsn_code'},{label:'Qty',key:'qty'},
-                {label:'Taxable',render:r=>fmt(r.taxable)},{label:'CGST',render:r=>fmt(r.cgst)},
-                {label:'SGST',render:r=>fmt(r.sgst)},{label:'IGST',render:r=>fmt(r.igst)}
-              ]} rows={data||[]} emptyMsg="No HSN data this period" />
             </Card>
           )}
-        </>
+
+          {tab === 'hsn' && (
+            <Card style={{ padding: '0px', overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', textAlign: 'left' }}>
+                    <th style={{ padding: '12px 16px', color: '#6B7280' }}>HSN Code</th>
+                    <th style={{ padding: '12px 16px', color: '#6B7280' }}>Qty</th>
+                    <th style={{ padding: '12px 16px', color: '#6B7280' }}>Taxable</th>
+                    <th style={{ padding: '12px 16px', color: '#6B7280' }}>CGST</th>
+                    <th style={{ padding: '12px 16px', color: '#6B7280' }}>SGST</th>
+                    <th style={{ padding: '12px 16px', color: '#6B7280' }}>IGST</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data || []).length === 0 ? (
+                    <tr>
+                      <td colSpan={6} style={{ padding: '20px', textAlign: 'center', color: '#6B7280' }}>No HSN summary records found.</td>
+                    </tr>
+                  ) : (
+                    (data || []).map((row, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #E5E7EB' }}>
+                        <td style={{ padding: '12px 16px', fontWeight: 600 }}>{row.hsn_code}</td>
+                        <td style={{ padding: '12px 16px' }}>{row.qty}</td>
+                        <td style={{ padding: '12px 16px', fontWeight: '700' }}>{fmt(row.taxable)}</td>
+                        <td style={{ padding: '12px 16px' }}>{fmt(row.cgst)}</td>
+                        <td style={{ padding: '12px 16px' }}>{fmt(row.sgst)}</td>
+                        <td style={{ padding: '12px 16px' }}>{fmt(row.igst)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </Card>
+          )}
+        </div>
       )}
+
     </div>
   );
 }

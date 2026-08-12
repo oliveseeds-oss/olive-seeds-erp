@@ -3,23 +3,82 @@ import api from '../utils/api';
 
 const AuthContext = createContext(null);
 
+const THEMES = {
+  admin: {
+    primary: '#1A1A2E',
+    badgeBg: '#EEF2FF',
+    badgeText: '#3B5BDB',
+    badgeLabel: 'ADMIN',
+  },
+  employee: {
+    primary: '#1A1A2E',
+    badgeBg: '#ECFDF3',
+    badgeText: '#166534',
+    badgeLabel: 'EMPLOYEE',
+  },
+  viewer: {
+    primary: '#1A1A2E',
+    badgeBg: '#F3E8FF',
+    badgeText: '#7E22CE',
+    badgeLabel: 'VIEWER',
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('os_user')); } catch { return null; }
+    try {
+      const u = localStorage.getItem('os_user');
+      return u ? JSON.parse(u) : null;
+    } catch {
+      return null;
+    }
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(() => {
+    return !!localStorage.getItem('os_token');
+  });
+
+  useEffect(() => {
+    const token = localStorage.getItem('os_token');
+    const userStr = localStorage.getItem('os_user');
+    if (!token || !userStr) {
+      setLoading(false);
+      return;
+    }
+    // Verify token with backend
+    api.get('/auth/me')
+      .then(res => {
+        setUser(res.data);
+        setLoading(false);
+      })
+      .catch(() => {
+        // Token invalid or expired
+        localStorage.removeItem('os_token');
+        localStorage.removeItem('os_user');
+        setUser(null);
+        setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    const role = user?.role || 'admin';
+    document.body.className = '';
+    document.body.classList.add(`theme-${role}`);
+  }, [user]);
 
   const login = async (email, password) => {
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/login', { email, password });
+      const res = await api.post('/auth/login', { email, password });
+      const data = res.data;
       localStorage.setItem('os_token', data.token);
       localStorage.setItem('os_user', JSON.stringify(data.user));
       setUser(data.user);
       return { success: true };
     } catch (e) {
-      return { success: false, error: e.response?.data?.error || 'Login failed' };
-    } finally { setLoading(false); }
+      return { success: false, error: e.response?.data?.error || 'Invalid email or password. Please try again.' };
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = () => {
@@ -42,3 +101,9 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
+
+export const useTheme = () => {
+  const { user } = useAuth();
+  const role = user?.role || 'admin';
+  return THEMES[role] || THEMES.admin;
+};

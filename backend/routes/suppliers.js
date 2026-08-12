@@ -20,7 +20,25 @@ router.post('/', authenticate, canWrite, async (req, res) => {
     const suppId = `SUP${String(count+1).padStart(4,'0')}`;
     const { name, company_name, gstin, pan, email, phone, address, city, state, pincode, country, bank_name, bank_account, bank_ifsc, payment_terms, notes } = req.body;
     const [r] = await db.query('INSERT INTO suppliers (supplier_id, name, company_name, gstin, pan, email, phone, address, city, state, pincode, country, bank_name, bank_account, bank_ifsc, payment_terms, notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-      [suppId, name, company_name, gstin, pan, email, phone, address, city, state, pincode, country||'India', bank_name, bank_account, bank_ifsc, payment_terms, notes]);
+      [
+        suppId,
+        name !== undefined ? name : null,
+        company_name !== undefined ? company_name : null,
+        gstin !== undefined ? gstin : null,
+        pan !== undefined ? pan : null,
+        email !== undefined ? email : null,
+        phone !== undefined ? phone : null,
+        address !== undefined ? address : null,
+        city !== undefined ? city : null,
+        state !== undefined ? state : null,
+        pincode !== undefined ? pincode : null,
+        country || 'India',
+        bank_name !== undefined ? bank_name : null,
+        bank_account !== undefined ? bank_account : null,
+        bank_ifsc !== undefined ? bank_ifsc : null,
+        payment_terms !== undefined ? payment_terms : null,
+        notes !== undefined ? notes : null
+      ]);
     res.json({ id: r.insertId, supplier_id: suppId });
   } catch(e) { res.status(500).json({ error:'Error' }); }
 });
