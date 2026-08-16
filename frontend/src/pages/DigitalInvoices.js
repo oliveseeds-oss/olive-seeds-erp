@@ -74,6 +74,17 @@ export default function DigitalInvoices() {
     }
   };
 
+  const confirmDelete = async () => {
+    try {
+      await api.delete(`/digital-invoices/${deleteId}`);
+      showToast('Digital invoice deleted successfully', 'success');
+      setDeleteId(null);
+      fetchDigitalInvoices();
+    } catch (err) {
+      showToast('Failed to delete digital invoice', 'error');
+    }
+  };
+
   useEffect(() => {
     fetchDigitalInvoices();
 
@@ -446,10 +457,9 @@ export default function DigitalInvoices() {
 
       {/* Delete Confirmation Modal */}
       <ConfirmDelete 
-        open={deleteId !== null} 
+        isOpen={deleteId !== null} 
         onClose={() => setDeleteId(null)} 
-        deleteUrl={`/digital-invoices/${deleteId}`} 
-        onDeleteSuccess={fetchDigitalInvoices} 
+        onConfirm={confirmDelete} 
       />
 
     </div>

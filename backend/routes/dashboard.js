@@ -13,7 +13,7 @@ router.get('/', authenticate, async (req, res) => {
     const [[readyToShip]] = await db.query(`SELECT COUNT(*) as count FROM orders WHERE status = 'ready'`, []);
     const [[lowStock]] = await db.query(`SELECT COUNT(*) as count FROM products WHERE stock <= reorder_level AND stock > 0 AND is_active=1`, []);
     const [[outOfStock]] = await db.query(`SELECT COUNT(*) as count FROM products WHERE stock = 0 AND is_active=1`, []);
-    const [[pendingPayments]] = await db.query(`SELECT COALESCE(SUM(total - paid_amount),0) as total FROM invoices WHERE payment_status IN ('pending','partial')`, []);
+    const [[pendingPayments]] = await db.query(`SELECT COALESCE(SUM(total - paid_amount),0) as total FROM invoices WHERE payment_status IN ('pending','partial') AND deleted_at IS NULL`, []);
     const [[monthGST]] = await db.query(`SELECT COALESCE(SUM(total_tax),0) as total FROM orders WHERE created_at >= ? AND status NOT IN ('cancelled','returned') AND is_gst_invoice=1`, [monthStart]);
     const [[monthProfit]] = await db.query(`
       SELECT COALESCE(SUM(o.total),0) - COALESCE((SELECT SUM(amount) FROM expenses WHERE expense_date >= ?),0) as profit

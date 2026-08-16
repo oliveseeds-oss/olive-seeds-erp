@@ -358,7 +358,7 @@ export default function Expenses() {
       <ImportModal open={importOpen} onClose={() => setImportOpen(false)} entityName="expenses" onImportSuccess={fetchExpenses} />
 
       <ConfirmDelete 
-        open={deleteId !== null} 
+        isOpen={deleteId !== null} 
         onClose={() => setDeleteId(null)} 
         onConfirm={confirmDeleteExpense} 
         title="Delete Expense"

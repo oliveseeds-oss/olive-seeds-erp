@@ -363,7 +363,7 @@ export default function Shipping() {
       <ImportModal open={importOpen} onClose={() => setImportOpen(false)} entityName="shipping" onImportSuccess={fetchShipping} />
 
       <ConfirmDelete 
-        open={deleteId !== null} 
+        isOpen={deleteId !== null} 
         onClose={() => setDeleteId(null)} 
         onConfirm={confirmDeleteShipment} 
         title="Delete Shipment"

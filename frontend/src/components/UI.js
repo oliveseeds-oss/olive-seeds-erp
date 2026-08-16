@@ -72,6 +72,8 @@ export const Card = ({ children, style = {}, onClick }) => {
         padding: '20px',
         boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
         cursor: onClick ? 'pointer' : 'default',
+        overflowX: 'auto',
+        maxWidth: '100%',
         ...style
       }}
       onClick={onClick}

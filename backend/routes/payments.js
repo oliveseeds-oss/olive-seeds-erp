@@ -9,7 +9,7 @@ router.get('/', authenticate, async (req, res) => {
       SELECT p.*, c.name as customer_name, i.invoice_number, o.order_id as order_reference, u.name as created_by_name
       FROM payments p
       LEFT JOIN customers c ON p.customer_id = c.id
-      LEFT JOIN invoices i ON p.invoice_id = i.id
+      LEFT JOIN invoices i ON p.invoice_id = i.id AND i.deleted_at IS NULL
       LEFT JOIN orders o ON p.order_id = o.id
       LEFT JOIN users u ON p.created_by = u.id
       WHERE 1=1
@@ -51,9 +51,13 @@ router.post('/refund', authenticate, canWrite, async (req, res) => {
 router.post('/', authenticate, canWrite, async (req, res) => {
   try {
     const {
-      invoice_id, order_id, customer_id, amount, currency, payment_method, transaction_id,
-      payment_date, status, notes, bank_name, cheque_number, clearing_date
+      invoice_id, order_id, customer_id, amount, amount_paid, currency, payment_method, payment_mode,
+      transaction_id, transaction_reference, payment_date, status, notes, bank_name, cheque_number, clearing_date
     } = req.body;
+
+    const amountVal = amount !== undefined ? amount : amount_paid;
+    const methodVal = payment_method || payment_mode || 'cash';
+    const txVal = transaction_id || transaction_reference || null;
 
     const [[{ cnt }]] = await db.query('SELECT COUNT(*) as cnt FROM payments');
     const payment_id = `PAY${String(cnt + 1).padStart(5, '0')}`;
@@ -65,15 +69,15 @@ router.post('/', authenticate, canWrite, async (req, res) => {
         clearing_date
       ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `, [
-      payment_id, invoice_id || null, order_id || null, customer_id || null, amount, currency || 'INR',
-      payment_method, transaction_id || null, payment_date || new Date().toISOString().split('T')[0],
+      payment_id, invoice_id || null, order_id || null, customer_id || null, amountVal, currency || 'INR',
+      methodVal, txVal, payment_date || new Date().toISOString().split('T')[0],
       status || 'completed', notes || null, req.user.id, bank_name || null, cheque_number || null,
       clearing_date || null
     ]);
 
     // Update invoice paid_amount and payment_status
     if (invoice_id) {
-      const [[inv]] = await db.query('SELECT total, paid_amount FROM invoices WHERE id = ?', [invoice_id]);
+      const [[inv]] = await db.query('SELECT total, paid_amount FROM invoices WHERE id = ? AND deleted_at IS NULL', [invoice_id]);
       if (inv) {
         const newPaid = parseFloat(inv.paid_amount || 0) + parseFloat(amount);
         const newStatus = newPaid >= parseFloat(inv.total) ? 'paid' : newPaid > 0 ? 'partial' : 'pending';

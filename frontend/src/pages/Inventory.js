@@ -593,7 +593,7 @@ export default function Inventory() {
       </Modal>
 
       <ConfirmDelete 
-        open={deleteRawId !== null} 
+        isOpen={deleteRawId !== null} 
         onClose={() => setDeleteRawId(null)} 
         onConfirm={handleConfirmDeleteRaw} 
         title="Delete Raw Material" 

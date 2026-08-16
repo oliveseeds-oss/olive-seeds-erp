@@ -35,7 +35,11 @@ router.post('/physical', authenticate, canWrite, async (req, res) => {
     } = req.body;
 
     const typeKey = bill_type === 'gst_invoice' ? 'gst_invoice_physical' : 'cash_memo';
-    const billNumber = req.body.bill_number || await getNextBillNumber(typeKey);
+    let billNumber = req.body.bill_number;
+    let [exists] = await conn.query('SELECT id FROM quick_bills_physical WHERE bill_number = ?', [billNumber]);
+    if (!billNumber || exists.length > 0) {
+      billNumber = await getNextBillNumber(typeKey);
+    }
 
     const [result] = await conn.query(
       `INSERT INTO quick_bills_physical (
@@ -203,7 +207,11 @@ router.post('/digital', authenticate, canWrite, async (req, res) => {
     } = req.body;
 
     const typeKey = bill_type === 'gst_invoice' ? 'gst_invoice_digital' : 'simple_receipt_digital';
-    const billNumber = req.body.bill_number || await getNextBillNumber(typeKey);
+    let billNumber = req.body.bill_number;
+    let [exists] = await conn.query('SELECT id FROM quick_bills_digital WHERE bill_number = ?', [billNumber]);
+    if (!billNumber || exists.length > 0) {
+      billNumber = await getNextBillNumber(typeKey);
+    }
 
     const [result] = await conn.query(
       `INSERT INTO quick_bills_digital (

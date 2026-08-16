@@ -31,7 +31,7 @@ router.get('/gstr1', authenticate, async (req, res) => {
         i.total_tax
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
-      LEFT JOIN invoices i ON i.order_id = o.id
+      LEFT JOIN invoices i ON i.order_id = o.id AND i.deleted_at IS NULL
       WHERE DATE_FORMAT(o.created_at, '%Y-%m') = ?
       AND o.is_gst_invoice = 1
       AND o.deleted_at IS NULL

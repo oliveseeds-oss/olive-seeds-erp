@@ -535,7 +535,7 @@ export default function Quotations() {
       </Modal>
 
       <ConfirmDelete 
-        open={deleteId !== null} 
+        isOpen={deleteId !== null} 
         onClose={() => setDeleteId(null)} 
         onConfirm={confirmDeleteQuo} 
         title="Delete Quotation"

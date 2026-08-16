@@ -79,7 +79,7 @@ router.get('/export/detailed', authenticate, async (req, res) => {
         i.invoice_number
       FROM orders o
       LEFT JOIN order_items oi ON o.id = oi.order_id
-      LEFT JOIN invoices i ON o.id = i.order_id
+      LEFT JOIN invoices i ON o.id = i.order_id AND i.deleted_at IS NULL
       WHERE o.deleted_at IS NULL
       ORDER BY o.created_at DESC
     `);

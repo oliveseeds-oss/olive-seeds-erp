@@ -143,14 +143,6 @@ export default function Layout() {
           .main-content-layout { margin-left: 0 !important; padding-bottom: 70px !important; }
           .mobile-navigation-bar { display: flex !important; }
         }
-        @media (min-width: 768px) and (max-width: 1024px) {
-          .desktop-sidebar-container { width: 56px !important; }
-          .main-content-layout { margin-left: 56px !important; }
-          .sidebar-app-title { display: none !important; }
-          .sidebar-item-label { display: none !important; }
-          .sidebar-username { display: none !important; }
-          .sidebar-role { display: none !important; }
-        }
       `}</style>
 
       {/* Desktop Fixed Sidebar */}
