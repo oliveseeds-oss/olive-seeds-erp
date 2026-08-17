@@ -28,12 +28,17 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 router.post('/refund', authenticate, canWrite, async (req, res) => {
+  const conn = await db.getConnection();
   try {
+    await conn.beginTransaction();
     const { payment_id, amount, reason } = req.body;
-    const [pays] = await db.query('SELECT * FROM payments WHERE payment_id=?', [payment_id]);
-    if (!pays.length) return res.status(404).json({ error: 'Payment not found' });
+    const [pays] = await conn.query('SELECT * FROM payments WHERE payment_id=?', [payment_id]);
+    if (!pays.length) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Payment not found' });
+    }
     const refundId = `REF${Date.now()}`;
-    await db.query(`
+    await conn.query(`
       INSERT INTO payments (
         payment_id, invoice_id, order_id, customer_id, amount, payment_method, payment_date,
         status, notes, created_by
@@ -42,14 +47,38 @@ router.post('/refund', authenticate, canWrite, async (req, res) => {
       refundId, pays[0].invoice_id, pays[0].order_id, pays[0].customer_id,
       -Math.abs(amount), pays[0].payment_method, reason, req.user.id
     ]);
+
+    if (pays[0].invoice_id) {
+      const [[inv]] = await conn.query('SELECT total, paid_amount FROM invoices WHERE id=?', [pays[0].invoice_id]);
+      if (inv) {
+        const newPaid = Math.max(0, parseFloat(inv.paid_amount || 0) - Math.abs(amount));
+        const newStatus = newPaid >= parseFloat(inv.total) ? 'paid' : newPaid > 0 ? 'partial' : 'pending';
+        await conn.query('UPDATE invoices SET paid_amount = ?, payment_status = ? WHERE id = ?', [newPaid, newStatus, pays[0].invoice_id]);
+      }
+    }
+    if (pays[0].order_id) {
+      const [[ord]] = await conn.query('SELECT total, paid_amount FROM orders WHERE id=?', [pays[0].order_id]);
+      if (ord) {
+         const newPaid = Math.max(0, parseFloat(ord.paid_amount || 0) - Math.abs(amount));
+         const newStatus = newPaid >= parseFloat(ord.total) ? 'paid' : newPaid > 0 ? 'partial' : 'pending';
+         await conn.query('UPDATE orders SET paid_amount=?, payment_status=?, balance_due=total-? WHERE id=?', [newPaid, newStatus, newPaid, pays[0].order_id]);
+      }
+    }
+
+    await conn.commit();
     res.json({ message: 'Refund recorded', refund_id: refundId });
   } catch (e) {
+    await conn.rollback();
     res.status(500).json({ error: 'Error' });
+  } finally {
+    conn.release();
   }
 });
 
 router.post('/', authenticate, canWrite, async (req, res) => {
+  const conn = await db.getConnection();
   try {
+    await conn.beginTransaction();
     const {
       invoice_id, order_id, customer_id, amount, amount_paid, currency, payment_method, payment_mode,
       transaction_id, transaction_reference, payment_date, status, notes, bank_name, cheque_number, clearing_date
@@ -59,10 +88,10 @@ router.post('/', authenticate, canWrite, async (req, res) => {
     const methodVal = payment_method || payment_mode || 'cash';
     const txVal = transaction_id || transaction_reference || null;
 
-    const [[{ cnt }]] = await db.query('SELECT COUNT(*) as cnt FROM payments');
+    const [[{ cnt }]] = await conn.query('SELECT COUNT(*) as cnt FROM payments');
     const payment_id = `PAY${String(cnt + 1).padStart(5, '0')}`;
 
-    const [result] = await db.query(`
+    const [result] = await conn.query(`
       INSERT INTO payments (
         payment_id, invoice_id, order_id, customer_id, amount, currency, payment_method,
         transaction_id, payment_date, status, notes, created_by, bank_name, cheque_number,
@@ -77,23 +106,27 @@ router.post('/', authenticate, canWrite, async (req, res) => {
 
     // Update invoice paid_amount and payment_status
     if (invoice_id) {
-      const [[inv]] = await db.query('SELECT total, paid_amount FROM invoices WHERE id = ? AND deleted_at IS NULL', [invoice_id]);
+      const [[inv]] = await conn.query('SELECT total, paid_amount FROM invoices WHERE id = ? AND deleted_at IS NULL', [invoice_id]);
       if (inv) {
-        const newPaid = parseFloat(inv.paid_amount || 0) + parseFloat(amount);
+        const newPaid = parseFloat(inv.paid_amount || 0) + parseFloat(amountVal);
         const newStatus = newPaid >= parseFloat(inv.total) ? 'paid' : newPaid > 0 ? 'partial' : 'pending';
-        await db.query('UPDATE invoices SET paid_amount = ?, payment_status = ? WHERE id = ?', [newPaid, newStatus, invoice_id]);
+        await conn.query('UPDATE invoices SET paid_amount = ?, payment_status = ? WHERE id = ?', [newPaid, newStatus, invoice_id]);
 
         // Update linked order
         if (order_id) {
-          await db.query('UPDATE orders SET payment_status = ?, paid_amount = ?, balance_due = total - ? WHERE id = ?', [newStatus, newPaid, newPaid, order_id]);
+          await conn.query('UPDATE orders SET payment_status = ?, paid_amount = ?, balance_due = total - ? WHERE id = ?', [newStatus, newPaid, newPaid, order_id]);
         }
       }
     }
 
+    await conn.commit();
     res.json({ id: result.insertId, payment_id, message: 'Payment recorded successfully' });
   } catch (err) {
+    await conn.rollback();
     console.error('Payment error:', err);
     res.status(500).json({ error: err.message });
+  } finally {
+    conn.release();
   }
 });
 

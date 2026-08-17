@@ -142,10 +142,15 @@ router.post('/raw-materials/adjust', authenticate, async (req, res) => {
 });
 
 router.post('/adjust', authenticate, canWrite, async (req, res) => {
+  const conn = await db.getConnection();
   try {
+    await conn.beginTransaction();
     const { product_id, adjustment_type, quantity, reason, notes } = req.body;
-    const [[product]] = await db.query('SELECT stock FROM products WHERE id = ?', [product_id]);
-    if (!product) return res.status(404).json({ error: 'Product not found' });
+    const [[product]] = await conn.query('SELECT stock FROM products WHERE id = ? FOR UPDATE', [product_id]);
+    if (!product) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Product not found' });
+    }
     const qty = parseInt(quantity);
     let newStock;
     let movementType;
@@ -156,7 +161,10 @@ router.post('/adjust', authenticate, canWrite, async (req, res) => {
     } else if (adjustment_type === 'remove') {
       newStock = product.stock - qty;
       movementType = 'out';
-      if (newStock < 0) return res.status(400).json({ error: 'Insufficient stock' });
+      if (newStock < 0) {
+        await conn.rollback();
+        return res.status(400).json({ error: 'Insufficient stock' });
+      }
     } else if (adjustment_type === 'damage') {
       newStock = product.stock - qty;
       movementType = 'damage';
@@ -165,23 +173,28 @@ router.post('/adjust', authenticate, canWrite, async (req, res) => {
       newStock = qty;
       movementType = 'adjustment';
     } else {
+      await conn.rollback();
       return res.status(400).json({ error: 'Invalid adjustment type' });
     }
 
-    await db.query('UPDATE products SET stock = ? WHERE id = ?', [newStock, product_id]);
-    await db.query(`
+    await conn.query('UPDATE products SET stock = ? WHERE id = ?', [newStock, product_id]);
+    await conn.query(`
       INSERT INTO inventory_movements (product_id, movement_type, quantity, notes, created_by)
       VALUES (?, ?, ?, ?, ?)
     `, [product_id, movementType, qty, `${reason || ''}: ${notes || ''}`, req.user.id]);
 
+    await conn.commit();
     res.json({
       message: 'Stock adjusted',
       new_stock: newStock,
       previous_stock: product.stock
     });
   } catch (e) {
+    await conn.rollback();
     console.error(e);
     res.status(500).json({ error: 'Error' });
+  } finally {
+    conn.release();
   }
 });
 
