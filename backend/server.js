@@ -62,10 +62,15 @@ app.get('/api/health', (req, res) => res.json({ status: 'OK', time: new Date() }
 
 // Serve frontend in production
 app.use(express.static(path.join(__dirname, '../frontend/build')));
+
+// API 404 Handler - MUST be before the generic '*' handler
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: 'API endpoint not found' });
+});
+
+// Fallback for React Router
 app.get('*', (req, res) => {
-  if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
-  }
+  res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
 });
 
 const PORT = process.env.PORT || 5001;

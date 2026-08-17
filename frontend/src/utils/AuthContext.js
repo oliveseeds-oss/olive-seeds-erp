@@ -69,13 +69,21 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const res = await api.post('/auth/login', { email, password });
-      const data = res.data;
-      localStorage.setItem('os_token', data.token);
-      localStorage.setItem('os_user', JSON.stringify(data.user));
-      setUser(data.user);
-      return { success: true };
+      if (res.data && res.data.token) {
+        const data = res.data;
+        localStorage.setItem('os_token', data.token);
+        localStorage.setItem('os_user', JSON.stringify(data.user));
+        setUser(data.user);
+        return { success: true };
+      } else {
+        return { success: false, error: 'Invalid response from server' };
+      }
     } catch (e) {
-      return { success: false, error: e.response?.data?.error || 'Invalid email or password. Please try again.' };
+      console.error('Login error:', e);
+      return { 
+        success: false, 
+        error: e.response?.data?.error || e.message || 'Invalid email or password. Please try again.' 
+      };
     } finally {
       setLoading(false);
     }

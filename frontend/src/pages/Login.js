@@ -17,7 +17,7 @@ export default function Login() {
     if (res.success) {
       navigate('/');
     } else {
-      setErrorMsg('Invalid email or password. Please try again.');
+      setErrorMsg(res.error || 'Invalid email or password. Please try again.');
     }
   };
 
@@ -218,7 +218,7 @@ export default function Login() {
                 color: '#B91C1C',
                 fontSize: '13px'
               }}>
-                Invalid email or password. Please try again.
+                {errorMsg}
               </span>
             </div>
           )}
