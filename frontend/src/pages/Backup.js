@@ -44,9 +44,16 @@ export default function Backup() {
   const fetchSettings = async () => {
     try {
       const res = await api.get('/backup/settings');
-      setSettings(res.data);
+      if (res.data) {
+        setSettings({
+          frequency: res.data.frequency || 'manual',
+          keep_count: res.data.keep_count || 10,
+          google_drive_folder: res.data.google_drive_folder || 'OliveSeeds ERP Backups'
+        });
+      }
     } catch {}
   };
+
 
   const fetchHistory = async () => {
     try {
