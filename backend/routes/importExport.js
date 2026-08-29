@@ -113,9 +113,7 @@ router.get('/export/:entity', authenticate, async (req, res) => {
     if (!table) return res.status(400).json({ error: 'Unknown entity' });
 
     let query = `SELECT * FROM \`${table}\` WHERE 1=1`;
-    if (['products', 'customers', 'orders', 'invoices'].includes(table)) {
-      query += ' AND deleted_at IS NULL';
-    }
+
     const params = [];
     if (from) { query += ' AND DATE(created_at) >= ?'; params.push(from); }
     if (to) { query += ' AND DATE(created_at) <= ?'; params.push(to); }

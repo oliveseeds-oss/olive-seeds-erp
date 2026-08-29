@@ -9,7 +9,7 @@ router.get('/', authenticate, async (req, res) => {
       SELECT p.*, c.name as customer_name, i.invoice_number, o.order_id as order_reference, u.name as created_by_name
       FROM payments p
       LEFT JOIN customers c ON p.customer_id = c.id
-      LEFT JOIN invoices i ON p.invoice_id = i.id AND i.deleted_at IS NULL
+      LEFT JOIN invoices i ON p.invoice_id = i.id
       LEFT JOIN orders o ON p.order_id = o.id
       LEFT JOIN users u ON p.created_by = u.id
       WHERE 1=1
@@ -106,7 +106,7 @@ router.post('/', authenticate, canWrite, async (req, res) => {
 
     // Update invoice paid_amount and payment_status
     if (invoice_id) {
-      const [[inv]] = await conn.query('SELECT total, paid_amount FROM invoices WHERE id = ? AND deleted_at IS NULL', [invoice_id]);
+      const [[inv]] = await conn.query('SELECT total, paid_amount FROM invoices WHERE id = ?', [invoice_id]);
       if (inv) {
         const newPaid = parseFloat(inv.paid_amount || 0) + parseFloat(amountVal);
         const newStatus = newPaid >= parseFloat(inv.total) ? 'paid' : newPaid > 0 ? 'partial' : 'pending';

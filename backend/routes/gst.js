@@ -31,7 +31,7 @@ router.get('/gstr1', authenticate, async (req, res) => {
         i.total_tax
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
-      LEFT JOIN invoices i ON i.order_id = o.id AND i.deleted_at IS NULL
+      LEFT JOIN invoices i ON i.order_id = o.id
       WHERE DATE_FORMAT(o.created_at, '%Y-%m') = ?
       AND o.is_gst_invoice = 1
       AND o.deleted_at IS NULL
@@ -50,8 +50,6 @@ router.get('/gstr1', authenticate, async (req, res) => {
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
       WHERE DATE_FORMAT(o.created_at, '%Y-%m') = ?
-      AND o.is_gst_invoice = 1
-      AND o.deleted_at IS NULL
       AND o.status NOT IN ('cancelled','returned')
       AND (c.gstin IS NULL OR c.gstin = '' OR o.customer_id IS NULL)
     `, [period]);
@@ -65,8 +63,6 @@ router.get('/gstr1', authenticate, async (req, res) => {
         COALESCE(SUM(total_tax), 0) as tax
       FROM orders
       WHERE DATE_FORMAT(created_at, '%Y-%m') = ?
-      AND is_gst_invoice = 1
-      AND deleted_at IS NULL
       AND status NOT IN ('cancelled','returned')
     `, [period]);
 
@@ -86,7 +82,7 @@ router.get('/gstr3b', authenticate, async (req, res) => {
     const [[sales]] = await db.query(`
       SELECT SUM(subtotal) as taxable, SUM(cgst) as cgst, SUM(sgst) as sgst, SUM(igst) as igst, SUM(total_tax) as tax
       FROM orders
-      WHERE DATE_FORMAT(created_at,'%Y-%m')=? AND is_gst_invoice=1 AND deleted_at IS NULL AND status NOT IN ('cancelled','returned')
+      WHERE DATE_FORMAT(created_at,'%Y-%m')=? AND is_gst_invoice=1 AND status NOT IN ('cancelled','returned')
     `, [period]);
     const [[purchases]] = await db.query(`
       SELECT SUM(gst_amount) as input_tax FROM expenses WHERE DATE_FORMAT(expense_date,'%Y-%m')=?
@@ -108,7 +104,7 @@ router.get('/hsn', authenticate, async (req, res) => {
       SELECT oi.hsn_code, SUM(oi.quantity) as qty, SUM(oi.total) as taxable,
       SUM(oi.cgst_amount) as cgst, SUM(oi.sgst_amount) as sgst, SUM(oi.igst_amount) as igst
       FROM order_items oi JOIN orders o ON oi.order_id=o.id
-      WHERE DATE_FORMAT(o.created_at,'%Y-%m')=? AND o.is_gst_invoice=1 AND o.deleted_at IS NULL AND o.status NOT IN ('cancelled','returned')
+      WHERE DATE_FORMAT(o.created_at,'%Y-%m')=? AND o.is_gst_invoice=1 AND o.status NOT IN ('cancelled','returned')
       GROUP BY oi.hsn_code
     `, [period]);
     res.json(rows);

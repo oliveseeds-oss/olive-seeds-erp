@@ -40,7 +40,7 @@ router.get('/stock', authenticate, async (req, res) => {
              END as stock_status
       FROM products p
       LEFT JOIN categories c ON p.category_id=c.id
-      WHERE p.is_active=1 AND p.deleted_at IS NULL
+      WHERE p.is_active=1
       ORDER BY p.stock ASC
     `);
     res.json(rows);

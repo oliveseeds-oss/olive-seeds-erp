@@ -21,7 +21,7 @@ const genProductId = async (type) => {
 router.get('/', authenticate, async (req, res) => {
   try {
     const { search, type, category, low_stock, page = 1, limit = 50 } = req.query;
-    let query = 'SELECT p.*, c.name as category_name, c.type as category_type FROM products p LEFT JOIN categories c ON p.category_id=c.id WHERE p.deleted_at IS NULL AND p.is_active = 1';
+    let query = 'SELECT p.*, c.name as category_name, c.type as category_type FROM products p LEFT JOIN categories c ON p.category_id=c.id WHERE p.is_active = 1';
     const params = [];
     if (search) {
       query += ' AND (p.name LIKE ? OR p.sku LIKE ? OR p.barcode LIKE ? OR p.product_id LIKE ?)';
@@ -41,7 +41,7 @@ router.get('/', authenticate, async (req, res) => {
     }
     query += ` ORDER BY p.name ASC LIMIT ${parseInt(limit)} OFFSET ${(parseInt(page) - 1) * parseInt(limit)}`;
     const [products] = await db.query(query, params);
-    const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM products WHERE deleted_at IS NULL AND is_active = 1');
+    const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM products WHERE is_active = 1');
     res.json({ products, total });
   } catch (err) {
     res.status(500).json({ error: 'Error' });
@@ -64,7 +64,7 @@ router.get('/meta/categories', authenticate, async (req, res) => {
 // Get product by ID
 router.get('/:id', authenticate, async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT p.*, c.name as category_name, c.type as category_type FROM products p LEFT JOIN categories c ON p.category_id=c.id WHERE (p.id=? OR p.product_id=?) AND p.deleted_at IS NULL', [req.params.id, req.params.id]);
+    const [rows] = await db.query('SELECT p.*, c.name as category_name, c.type as category_type FROM products p LEFT JOIN categories c ON p.category_id=c.id WHERE (p.id=? OR p.product_id=?)', [req.params.id, req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Product not found' });
     res.json(rows[0]);
   } catch (err) {
