@@ -51,9 +51,12 @@ export default function Backup() {
   const fetchHistory = async () => {
     try {
       const res = await api.get('/backup/history');
-      setHistory(res.data || []);
-    } catch {}
+      setHistory(Array.isArray(res.data) ? res.data : []);
+    } catch {
+      setHistory([]);
+    }
   };
+
 
   // ── CONNECT GOOGLE DRIVE ───────────────────────────────
   const connectGoogleDrive = async () => {
