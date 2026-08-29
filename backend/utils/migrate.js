@@ -787,6 +787,13 @@ async function runMigrations() {
     await addColumnSafely('quotations', 'deleted_at', 'TIMESTAMP NULL DEFAULT NULL');
     await addColumnSafely('expenses', 'deleted_at', 'TIMESTAMP NULL DEFAULT NULL');
 
+    // Quotations extra fields
+    await addColumnSafely('quotations', 'quotation_title', 'VARCHAR(200)');
+    await addColumnSafely('quotations', 'billing_city', 'VARCHAR(100)');
+    await addColumnSafely('quotations', 'billing_state', 'VARCHAR(100)');
+    await addColumnSafely('quotations', 'billing_pincode', 'VARCHAR(10)');
+
+
     // Execute queries from migrations/fix_all.sql
     const fixAllPath = path.join(__dirname, '../migrations/fix_all.sql');
     if (fs.existsSync(fixAllPath)) {
