@@ -53,9 +53,10 @@ services:
     container_name: olive_seeds_frontend
     restart: always
     ports:
-      - "3000:80"
+      - "3002:80"
     networks:
       - olive_network
+
 
 volumes:
   mysql_data:
