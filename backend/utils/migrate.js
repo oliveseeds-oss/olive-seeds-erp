@@ -6,45 +6,441 @@ const path = require('path');
 async function runMigrations() {
   console.log('Running database migrations...');
   try {
-    // 0. Verify if core tables (like users) exist. If not, run database.sql schema first.
-    let schemaNeeded = false;
+    // 0. Always ensure ALL core tables exist using IF NOT EXISTS — safe to run every time
+
+    // users
+    await db.query(`CREATE TABLE IF NOT EXISTS users (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id VARCHAR(20) UNIQUE NOT NULL,
+      name VARCHAR(100) NOT NULL,
+      email VARCHAR(100) UNIQUE NOT NULL,
+      password VARCHAR(255) NOT NULL,
+      role ENUM('admin','employee','viewer') NOT NULL DEFAULT 'viewer',
+      phone VARCHAR(20),
+      is_active BOOLEAN DEFAULT TRUE,
+      last_login DATETIME,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`);
+
+    // company_settings
+    await db.query(`CREATE TABLE IF NOT EXISTS company_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      company_name VARCHAR(200) NOT NULL DEFAULT 'My Company',
+      gstin VARCHAR(20),
+      pan VARCHAR(15),
+      email VARCHAR(100),
+      phone VARCHAR(20),
+      address TEXT,
+      city VARCHAR(100),
+      state VARCHAR(100) DEFAULT 'Tamil Nadu',
+      pincode VARCHAR(10),
+      country VARCHAR(100) DEFAULT 'India',
+      invoice_prefix VARCHAR(10) DEFAULT 'OS',
+      invoice_counter INT DEFAULT 1,
+      currency VARCHAR(10) DEFAULT 'INR',
+      bank_name VARCHAR(200),
+      bank_account VARCHAR(30),
+      bank_ifsc VARCHAR(20),
+      bank_branch VARCHAR(200),
+      upi_id VARCHAR(100),
+      terms_conditions TEXT,
+      invoice_footer TEXT,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`);
+
+    // categories
+    await db.query(`CREATE TABLE IF NOT EXISTS categories (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(200) NOT NULL,
+      parent_id INT,
+      type ENUM('physical','digital','service') DEFAULT 'physical',
+      description TEXT
+    )`);
+
+    // customers
+    await db.query(`CREATE TABLE IF NOT EXISTS customers (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      customer_id VARCHAR(20) UNIQUE NOT NULL,
+      customer_type ENUM('personal','business','wholesale','corporate','international') DEFAULT 'personal',
+      name VARCHAR(200) NOT NULL,
+      company_name VARCHAR(200),
+      gstin VARCHAR(20),
+      pan VARCHAR(15),
+      email VARCHAR(150),
+      phone VARCHAR(20),
+      alt_phone VARCHAR(20),
+      billing_address TEXT,
+      billing_city VARCHAR(100),
+      billing_state VARCHAR(100),
+      billing_pincode VARCHAR(10),
+      billing_country VARCHAR(100) DEFAULT 'India',
+      shipping_address TEXT,
+      shipping_city VARCHAR(100),
+      shipping_state VARCHAR(100),
+      shipping_pincode VARCHAR(10),
+      shipping_country VARCHAR(100) DEFAULT 'India',
+      currency VARCHAR(10) DEFAULT 'INR',
+      customer_group VARCHAR(100),
+      credit_limit DECIMAL(15,2) DEFAULT 0,
+      outstanding_balance DECIMAL(15,2) DEFAULT 0,
+      notes TEXT,
+      is_active BOOLEAN DEFAULT TRUE,
+      deleted_at TIMESTAMP NULL DEFAULT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`);
+
+    // suppliers
+    await db.query(`CREATE TABLE IF NOT EXISTS suppliers (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      supplier_id VARCHAR(20) UNIQUE NOT NULL,
+      name VARCHAR(200) NOT NULL,
+      company_name VARCHAR(200),
+      gstin VARCHAR(20),
+      pan VARCHAR(15),
+      email VARCHAR(150),
+      phone VARCHAR(20),
+      address TEXT,
+      city VARCHAR(100),
+      state VARCHAR(100),
+      pincode VARCHAR(10),
+      country VARCHAR(100) DEFAULT 'India',
+      bank_name VARCHAR(200),
+      bank_account VARCHAR(30),
+      bank_ifsc VARCHAR(20),
+      payment_terms VARCHAR(200),
+      outstanding DECIMAL(15,2) DEFAULT 0,
+      notes TEXT,
+      is_active BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // products
+    await db.query(`CREATE TABLE IF NOT EXISTS products (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      product_id VARCHAR(30) UNIQUE NOT NULL,
+      product_type ENUM('physical','digital','service') DEFAULT 'physical',
+      sku VARCHAR(100) UNIQUE,
+      name VARCHAR(500) NOT NULL,
+      category_id INT,
+      material VARCHAR(200),
+      color VARCHAR(100),
+      size VARCHAR(100),
+      thickness VARCHAR(50),
+      weight DECIMAL(10,3),
+      description TEXT,
+      hsn_code VARCHAR(20),
+      sac_code VARCHAR(20),
+      gst_percent DECIMAL(5,2) DEFAULT 18,
+      purchase_price DECIMAL(15,2) DEFAULT 0,
+      selling_price DECIMAL(15,2) NOT NULL DEFAULT 0,
+      bulk_price DECIMAL(15,2),
+      bulk_min_qty INT DEFAULT 1,
+      stock INT DEFAULT 0,
+      reorder_level INT DEFAULT 5,
+      image_urls TEXT,
+      is_active BOOLEAN DEFAULT TRUE,
+      marketplace_website BOOLEAN DEFAULT FALSE,
+      deleted_at TIMESTAMP NULL DEFAULT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`);
+
+    // inventory_movements
+    await db.query(`CREATE TABLE IF NOT EXISTS inventory_movements (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      product_id INT NOT NULL,
+      movement_type ENUM('in','out','adjustment','damage','return','transfer') NOT NULL,
+      quantity INT NOT NULL,
+      reference_type VARCHAR(50),
+      reference_id INT,
+      notes TEXT,
+      created_by INT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // raw_materials
+    await db.query(`CREATE TABLE IF NOT EXISTS raw_materials (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      material_id VARCHAR(20) UNIQUE NOT NULL,
+      name VARCHAR(200) NOT NULL,
+      unit VARCHAR(50),
+      stock DECIMAL(10,3) DEFAULT 0,
+      reorder_level DECIMAL(10,3) DEFAULT 0,
+      purchase_price DECIMAL(15,2) DEFAULT 0,
+      supplier_id INT,
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // orders
+    await db.query(`CREATE TABLE IF NOT EXISTS orders (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      order_id VARCHAR(30) UNIQUE NOT NULL,
+      order_type ENUM('regular','bulk','digital','service') DEFAULT 'regular',
+      source ENUM('website','amazon','flipkart','etsy','instagram','whatsapp','manual','walkin') DEFAULT 'manual',
+      customer_id INT,
+      customer_name VARCHAR(200),
+      customer_email VARCHAR(150),
+      customer_phone VARCHAR(20),
+      billing_address TEXT,
+      shipping_address TEXT,
+      shipping_city VARCHAR(100),
+      shipping_state VARCHAR(100),
+      shipping_pincode VARCHAR(10),
+      shipping_country VARCHAR(100) DEFAULT 'India',
+      status ENUM('pending','processing','manufacturing','engraving','qc','packing','ready','shipped','delivered','cancelled','returned','refunded') DEFAULT 'pending',
+      subtotal DECIMAL(15,2) DEFAULT 0,
+      discount DECIMAL(15,2) DEFAULT 0,
+      discount_percent DECIMAL(5,2) DEFAULT 0,
+      cgst DECIMAL(15,2) DEFAULT 0,
+      sgst DECIMAL(15,2) DEFAULT 0,
+      igst DECIMAL(15,2) DEFAULT 0,
+      total_tax DECIMAL(15,2) DEFAULT 0,
+      shipping_cost DECIMAL(15,2) DEFAULT 0,
+      total DECIMAL(15,2) DEFAULT 0,
+      paid_amount DECIMAL(15,2) DEFAULT 0,
+      balance_due DECIMAL(15,2) DEFAULT 0,
+      currency VARCHAR(10) DEFAULT 'INR',
+      exchange_rate DECIMAL(10,4) DEFAULT 1,
+      payment_status ENUM('pending','partial','paid','refunded') DEFAULT 'pending',
+      payment_method VARCHAR(50),
+      notes TEXT,
+      personalization_notes TEXT,
+      personalization_text TEXT,
+      remark TEXT,
+      is_gst_invoice BOOLEAN DEFAULT TRUE,
+      is_international BOOLEAN DEFAULT FALSE,
+      tracking_number VARCHAR(200),
+      courier VARCHAR(100),
+      courier_name VARCHAR(200),
+      awb_number VARCHAR(100),
+      order_time TIME,
+      shipped_at DATETIME,
+      delivered_at DATETIME,
+      deleted_at TIMESTAMP NULL DEFAULT NULL,
+      created_by INT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`);
+
+    // order_items
+    await db.query(`CREATE TABLE IF NOT EXISTS order_items (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      order_id INT NOT NULL,
+      product_id INT,
+      product_name VARCHAR(500) NOT NULL,
+      sku VARCHAR(100),
+      hsn_code VARCHAR(20),
+      quantity INT NOT NULL,
+      unit_price DECIMAL(15,2) NOT NULL,
+      discount DECIMAL(15,2) DEFAULT 0,
+      discount_percent DECIMAL(5,2) DEFAULT 0,
+      gst_percent DECIMAL(5,2) DEFAULT 0,
+      cgst_amount DECIMAL(15,2) DEFAULT 0,
+      sgst_amount DECIMAL(15,2) DEFAULT 0,
+      igst_amount DECIMAL(15,2) DEFAULT 0,
+      subtotal DECIMAL(15,2) DEFAULT 0,
+      total DECIMAL(15,2) NOT NULL DEFAULT 0,
+      personalization TEXT,
+      size VARCHAR(100),
+      FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+    )`);
+
+    // invoices
+    await db.query(`CREATE TABLE IF NOT EXISTS invoices (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      invoice_number VARCHAR(50) UNIQUE NOT NULL,
+      invoice_type ENUM('tax','retail','wholesale','corporate','proforma','quotation','delivery_challan','credit_note','debit_note','estimate','purchase','commercial','gift','sample') DEFAULT 'tax',
+      order_id INT,
+      customer_id INT,
+      supplier_id INT,
+      customer_name VARCHAR(200),
+      customer_email VARCHAR(150),
+      customer_phone VARCHAR(20),
+      invoice_date DATE NOT NULL,
+      due_date DATE,
+      subtotal DECIMAL(15,2) DEFAULT 0,
+      discount DECIMAL(15,2) DEFAULT 0,
+      cgst DECIMAL(15,2) DEFAULT 0,
+      sgst DECIMAL(15,2) DEFAULT 0,
+      igst DECIMAL(15,2) DEFAULT 0,
+      total_tax DECIMAL(15,2) DEFAULT 0,
+      shipping_cost DECIMAL(15,2) DEFAULT 0,
+      total DECIMAL(15,2) NOT NULL DEFAULT 0,
+      currency VARCHAR(10) DEFAULT 'INR',
+      exchange_rate DECIMAL(10,4) DEFAULT 1,
+      payment_status ENUM('pending','partial','paid','refunded') DEFAULT 'pending',
+      paid_amount DECIMAL(15,2) DEFAULT 0,
+      balance_due DECIMAL(15,2) DEFAULT 0,
+      payment_mode VARCHAR(50),
+      is_finalized BOOLEAN DEFAULT FALSE,
+      notes TEXT,
+      terms TEXT,
+      internal_notes TEXT,
+      is_international BOOLEAN DEFAULT FALSE,
+      country_of_origin VARCHAR(100) DEFAULT 'India',
+      country_of_destination VARCHAR(100),
+      hs_code VARCHAR(20),
+      weight DECIMAL(10,3),
+      declaration TEXT,
+      deleted_at TIMESTAMP NULL DEFAULT NULL,
+      created_by INT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // invoice_items
+    await db.query(`CREATE TABLE IF NOT EXISTS invoice_items (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      invoice_id INT NOT NULL,
+      product_id INT,
+      product_name VARCHAR(500) NOT NULL,
+      hsn_code VARCHAR(20),
+      quantity INT NOT NULL DEFAULT 1,
+      unit_price DECIMAL(15,2) NOT NULL DEFAULT 0,
+      discount_percent DECIMAL(5,2) DEFAULT 0,
+      gst_percent DECIMAL(5,2) DEFAULT 0,
+      cgst_amount DECIMAL(15,2) DEFAULT 0,
+      sgst_amount DECIMAL(15,2) DEFAULT 0,
+      igst_amount DECIMAL(15,2) DEFAULT 0,
+      total DECIMAL(15,2) NOT NULL DEFAULT 0,
+      FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
+    )`);
+
+    // payments
+    await db.query(`CREATE TABLE IF NOT EXISTS payments (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      payment_id VARCHAR(30) UNIQUE NOT NULL,
+      invoice_id INT,
+      order_id INT,
+      customer_id INT,
+      customer_name VARCHAR(200),
+      amount DECIMAL(15,2) NOT NULL,
+      currency VARCHAR(10) DEFAULT 'INR',
+      payment_method ENUM('cash','upi','card','netbanking','paypal','razorpay','stripe','bank_transfer','cod','advance','partial','wallet') NOT NULL,
+      transaction_id VARCHAR(200),
+      payment_date DATE NOT NULL,
+      status ENUM('pending','completed','failed','refunded') DEFAULT 'completed',
+      bank_name VARCHAR(200),
+      cheque_number VARCHAR(50),
+      clearing_date DATE,
+      refund_amount DECIMAL(15,2) DEFAULT 0,
+      notes TEXT,
+      created_by INT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // shipments
+    await db.query(`CREATE TABLE IF NOT EXISTS shipments (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      shipment_id VARCHAR(30) UNIQUE NOT NULL,
+      order_id INT NOT NULL,
+      customer_name VARCHAR(200),
+      courier ENUM('shiprocket','amazon','fedex','ups','dhl','aramex','indiapost','dtdc','bluedart','other') DEFAULT 'other',
+      tracking_number VARCHAR(200),
+      awb_number VARCHAR(200),
+      weight DECIMAL(10,3),
+      shipping_cost DECIMAL(15,2) DEFAULT 0,
+      actual_delivery DATE,
+      expected_delivery DATE,
+      cod_amount DECIMAL(15,2) DEFAULT 0,
+      insurance_amount DECIMAL(15,2) DEFAULT 0,
+      status ENUM('pending','picked','in_transit','out_delivery','delivered','returned') DEFAULT 'pending',
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // expenses
+    await db.query(`CREATE TABLE IF NOT EXISTS expenses (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      expense_id VARCHAR(20) UNIQUE NOT NULL,
+      category VARCHAR(200) NOT NULL,
+      description TEXT,
+      amount DECIMAL(15,2) NOT NULL,
+      gst_amount DECIMAL(15,2) DEFAULT 0,
+      gst_percent DECIMAL(5,2) DEFAULT 0,
+      expense_date DATE NOT NULL,
+      payment_method VARCHAR(50),
+      vendor VARCHAR(200),
+      reference_number VARCHAR(200),
+      receipt_path VARCHAR(500),
+      deleted_at TIMESTAMP NULL DEFAULT NULL,
+      created_by INT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // gst_returns
+    await db.query(`CREATE TABLE IF NOT EXISTS gst_returns (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      return_type ENUM('GSTR1','GSTR3B') NOT NULL,
+      period VARCHAR(20) NOT NULL,
+      total_taxable DECIMAL(15,2) DEFAULT 0,
+      total_cgst DECIMAL(15,2) DEFAULT 0,
+      total_sgst DECIMAL(15,2) DEFAULT 0,
+      total_igst DECIMAL(15,2) DEFAULT 0,
+      total_tax DECIMAL(15,2) DEFAULT 0,
+      status ENUM('draft','filed') DEFAULT 'draft',
+      filed_date DATE,
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // bulk_order_batches
+    await db.query(`CREATE TABLE IF NOT EXISTS bulk_order_batches (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      batch_id VARCHAR(30) UNIQUE NOT NULL,
+      name VARCHAR(200),
+      total_orders INT DEFAULT 0,
+      source_file VARCHAR(500),
+      status ENUM('processing','completed','failed') DEFAULT 'processing',
+      created_by INT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // activity_log
+    await db.query(`CREATE TABLE IF NOT EXISTS activity_log (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      action VARCHAR(100) NOT NULL,
+      module VARCHAR(100),
+      record_id INT,
+      old_value TEXT,
+      new_value TEXT,
+      ip_address VARCHAR(50),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // change_requests
+    await db.query(`CREATE TABLE IF NOT EXISTS change_requests (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      requested_by INT NOT NULL,
+      module VARCHAR(100) NOT NULL,
+      record_id INT,
+      change_type VARCHAR(200),
+      field_name VARCHAR(100),
+      current_value TEXT,
+      requested_value TEXT,
+      priority ENUM('low','medium','high') DEFAULT 'medium',
+      reason TEXT,
+      status ENUM('pending','approved','rejected') DEFAULT 'pending',
+      reviewed_by INT,
+      reviewed_at DATETIME,
+      review_notes TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // Ensure default company settings row exists
     try {
-      await db.query('SELECT 1 FROM users LIMIT 1');
-    } catch (err) {
-      console.log('Verification check for users table failed:', err.message);
-      schemaNeeded = true;
-    }
-
-
-    if (schemaNeeded) {
-      const dbSqlPath = path.join(__dirname, '../database.sql');
-      if (fs.existsSync(dbSqlPath)) {
-        console.log('Core tables missing. Loading database.sql schema...');
-        const sqlContent = fs.readFileSync(dbSqlPath, 'utf8');
-        
-        // Remove SQL comments block
-        const cleanSql = sqlContent
-          .replace(/\/\*[\s\S]*?\*\//g, '') // Remove /* ... */ comments
-          .replace(/--.*$/gm, '')           // Remove -- comments
-          .replace(/#.*$/gm, '');           // Remove # comments
-
-        // Split by semicolons while ignoring them inside text/inserts
-        const statements = cleanSql
-          .split(';')
-          .map(s => s.trim())
-          .filter(s => s.length > 0 && !s.startsWith('CREATE DATABASE') && !s.startsWith('USE'));
-        
-        console.log(`Parsed ${statements.length} statements from database.sql`);
-        for (const statement of statements) {
-          try {
-            await db.query(statement);
-          } catch (stmtErr) {
-            console.error('Error executing statement from database.sql:', stmtErr.message, 'Query fragment:', statement.substring(0, 150));
-          }
-        }
-        console.log('✓ database.sql executed successfully.');
+      const [[cs]] = await db.query('SELECT id FROM company_settings LIMIT 1');
+      if (!cs) {
+        await db.query(`INSERT INTO company_settings (company_name, state, country, invoice_prefix, currency)
+          VALUES ('Olive Seeds Design Studio', 'Tamil Nadu', 'India', 'OS', 'INR')`);
+        console.log('✓ Default company settings inserted.');
       }
-    }
+    } catch(e) { console.log('Company settings check note:', e.message); }
+
+    console.log('✓ All core tables verified/created.');
 
 
 
