@@ -1,8 +1,43 @@
 const db = require('./db');
 
+const fs = require('fs');
+const path = require('path');
+
 async function runMigrations() {
   console.log('Running database migrations...');
   try {
+    // 0. Verify if core tables (like users) exist. If not, run database.sql schema first.
+    let schemaNeeded = false;
+    try {
+      await db.query('SELECT 1 FROM users LIMIT 1');
+    } catch (err) {
+      if (err.code === 'ER_NO_SUCH_TABLE') {
+        schemaNeeded = true;
+      }
+    }
+
+    if (schemaNeeded) {
+      const dbSqlPath = path.join(__dirname, '../database.sql');
+      if (fs.existsSync(dbSqlPath)) {
+        console.log('Core tables missing. Loading database.sql schema...');
+        const sqlContent = fs.readFileSync(dbSqlPath, 'utf8');
+        // Split statements by semicolon and run sequentially
+        const statements = sqlContent
+          .split(';')
+          .map(s => s.trim())
+          .filter(s => s.length > 0 && !s.startsWith('--') && !s.startsWith('CREATE DATABASE') && !s.startsWith('USE'));
+
+        for (const statement of statements) {
+          try {
+            await db.query(statement);
+          } catch (stmtErr) {
+            console.error('Error executing statement from database.sql:', stmtErr.message);
+          }
+        }
+        console.log('✓ database.sql executed successfully.');
+      }
+    }
+
     // 1. Create quotations tables
     await db.query(`
       CREATE TABLE IF NOT EXISTS quotations (
@@ -329,10 +364,9 @@ async function runMigrations() {
     await addColumnSafely('shipments', 'shipping_label_url', 'VARCHAR(500)');
 
     // Execute queries from migrations/fix_all.sql
-    const fs = require('fs');
-    const path = require('path');
     const fixAllPath = path.join(__dirname, '../migrations/fix_all.sql');
     if (fs.existsSync(fixAllPath)) {
+
       console.log('Running migrations/fix_all.sql...');
       const sqlContent = fs.readFileSync(fixAllPath, 'utf8');
       const statements = sqlContent
