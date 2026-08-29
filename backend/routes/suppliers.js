@@ -53,4 +53,15 @@ router.put('/:id', authenticate, canModify, async (req, res) => {
   } catch(e) { res.status(500).json({ error:'Error' }); }
 });
 
+router.delete('/:id', authenticate, canModify, async (req, res) => {
+  try {
+    // Soft delete by setting is_active = 0
+    await db.query('UPDATE suppliers SET is_active = 0 WHERE id = ?', [req.params.id]);
+    res.json({ message: 'Supplier deleted successfully' });
+  } catch (e) {
+    res.status(500).json({ error: 'Error deleting supplier' });
+  }
+});
+
 module.exports = router;
+
