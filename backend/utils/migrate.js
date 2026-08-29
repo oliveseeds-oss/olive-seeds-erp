@@ -21,22 +21,38 @@ async function runMigrations() {
       if (fs.existsSync(dbSqlPath)) {
         console.log('Core tables missing. Loading database.sql schema...');
         const sqlContent = fs.readFileSync(dbSqlPath, 'utf8');
-        // Split statements by semicolon and run sequentially
-        const statements = sqlContent
-          .split(';')
-          .map(s => s.trim())
-          .filter(s => s.length > 0 && !s.startsWith('--') && !s.startsWith('CREATE DATABASE') && !s.startsWith('USE'));
-
+        
+        // Advanced SQL splitter that ignores comments and extracts statements correctly
+        const statements = [];
+        let currentStatement = '';
+        const lines = sqlContent.split('\n');
+        
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith('--') || trimmed.startsWith('#') || trimmed.startsWith('/*')) {
+            continue;
+          }
+          currentStatement += line + '\n';
+          if (trimmed.endsWith(';')) {
+            const stmt = currentStatement.trim().replace(/;$/, '');
+            if (stmt && !stmt.startsWith('CREATE DATABASE') && !stmt.startsWith('USE')) {
+              statements.push(stmt);
+            }
+            currentStatement = '';
+          }
+        }
+        
         for (const statement of statements) {
           try {
             await db.query(statement);
           } catch (stmtErr) {
-            console.error('Error executing statement from database.sql:', stmtErr.message);
+            console.error('Error executing statement from database.sql:', stmtErr.message, 'Query:', statement.substring(0, 100));
           }
         }
         console.log('✓ database.sql executed successfully.');
       }
     }
+
 
     // 1. Create quotations tables
     await db.query(`
