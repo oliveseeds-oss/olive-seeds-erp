@@ -16,6 +16,15 @@ CREATE TABLE IF NOT EXISTS backup_history (
   FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
+-- quotations
+ALTER TABLE quotations ADD COLUMN quotation_title VARCHAR(200);
+ALTER TABLE quotations ADD COLUMN billing_city VARCHAR(100);
+ALTER TABLE quotations ADD COLUMN billing_state VARCHAR(100);
+ALTER TABLE quotations ADD COLUMN billing_pincode VARCHAR(10);
+
+-- digital_invoices
+ALTER TABLE digital_invoices ADD COLUMN discount DECIMAL(15,2) DEFAULT 0;
+
 -- quick_bill_physical_items
 ALTER TABLE quick_bill_physical_items ADD COLUMN description TEXT;
 ALTER TABLE quick_bill_physical_items ADD COLUMN size VARCHAR(100);
@@ -79,6 +88,10 @@ ALTER TABLE shipments ADD COLUMN customer_name VARCHAR(200);
 ALTER TABLE shipments ADD COLUMN actual_delivery DATE;
 ALTER TABLE shipments ADD COLUMN cod_amount DECIMAL(15,2) DEFAULT 0;
 ALTER TABLE shipments ADD COLUMN insurance_amount DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE shipments ADD COLUMN volumetric_weight DECIMAL(10,2) DEFAULT 0;
+ALTER TABLE shipments ADD COLUMN length DECIMAL(10,2) DEFAULT 0;
+ALTER TABLE shipments ADD COLUMN width DECIMAL(10,2) DEFAULT 0;
+ALTER TABLE shipments ADD COLUMN height DECIMAL(10,2) DEFAULT 0;
 
 -- users
 ALTER TABLE users ADD COLUMN signature_path VARCHAR(500);
