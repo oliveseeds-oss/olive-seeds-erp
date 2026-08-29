@@ -83,6 +83,15 @@ async function generateBackupBuffer() {
     archive.on('data', chunk => buffers.push(chunk));
     archive.on('end', () => resolve(Buffer.concat(buffers)));
     archive.on('error', reject);
+    
+    // Pipe archive output to nothing, just to consume it so 'end' fires
+    const writable = new stream.Writable({
+      write(chunk, encoding, callback) {
+        callback();
+      }
+    });
+    archive.pipe(writable);
+
     const tables = [
       'users', 'company_settings', 'categories',
       'customers', 'products', 'suppliers',
@@ -134,6 +143,7 @@ async function generateBackupBuffer() {
     archive.finalize();
   });
 }
+
 
 // ── HELPER: Save backup to history ──────────────────────
 async function saveBackupHistory(filename, type, size, status, location, userId) {
