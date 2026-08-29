@@ -1,4 +1,8 @@
--- Backup history table (MySQL 8.0 compatible)
+-- fix_all.sql
+-- One ALTER TABLE per column — MySQL 8.0 compatible
+-- migrate.js wraps each statement in try/catch, so duplicates are safe
+
+-- backup_history table
 CREATE TABLE IF NOT EXISTS backup_history (
   id INT AUTO_INCREMENT PRIMARY KEY,
   filename VARCHAR(300),
@@ -12,98 +16,82 @@ CREATE TABLE IF NOT EXISTS backup_history (
   FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- quick_bill_physical_items: add missing columns
-ALTER TABLE quick_bill_physical_items
-  ADD COLUMN IF NOT EXISTS description TEXT,
-  ADD COLUMN IF NOT EXISTS size VARCHAR(100),
-  ADD COLUMN IF NOT EXISTS personalization TEXT;
+-- quick_bill_physical_items
+ALTER TABLE quick_bill_physical_items ADD COLUMN description TEXT;
+ALTER TABLE quick_bill_physical_items ADD COLUMN size VARCHAR(100);
+ALTER TABLE quick_bill_physical_items ADD COLUMN personalization TEXT;
 
--- orders: add deleted_at and other missing columns
-ALTER TABLE orders
-  ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL DEFAULT NULL;
+-- orders
+ALTER TABLE orders ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL;
+ALTER TABLE orders ADD COLUMN order_time TIME;
+ALTER TABLE orders ADD COLUMN courier_name VARCHAR(200);
+ALTER TABLE orders ADD COLUMN personalization_text TEXT;
+ALTER TABLE orders ADD COLUMN remark TEXT;
+ALTER TABLE orders ADD COLUMN paid_amount DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE orders ADD COLUMN balance_due DECIMAL(15,2) DEFAULT 0;
 
-ALTER TABLE orders
-  ADD COLUMN IF NOT EXISTS order_time TIME,
-  ADD COLUMN IF NOT EXISTS courier_name VARCHAR(200),
-  ADD COLUMN IF NOT EXISTS personalization_text TEXT,
-  ADD COLUMN IF NOT EXISTS remark TEXT,
-  ADD COLUMN IF NOT EXISTS paid_amount DECIMAL(15,2) DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS balance_due DECIMAL(15,2) DEFAULT 0;
+-- invoices
+ALTER TABLE invoices ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL;
+ALTER TABLE invoices ADD COLUMN customer_name VARCHAR(200);
+ALTER TABLE invoices ADD COLUMN customer_email VARCHAR(150);
+ALTER TABLE invoices ADD COLUMN customer_phone VARCHAR(20);
+ALTER TABLE invoices ADD COLUMN paid_amount DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE invoices ADD COLUMN balance_due DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE invoices ADD COLUMN payment_mode VARCHAR(50);
+ALTER TABLE invoices ADD COLUMN is_finalized BOOLEAN DEFAULT FALSE;
 
--- invoices: add deleted_at and other missing columns
-ALTER TABLE invoices
-  ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL DEFAULT NULL;
+-- company_settings
+ALTER TABLE company_settings ADD COLUMN google_tokens TEXT;
+ALTER TABLE company_settings ADD COLUMN google_drive_email VARCHAR(200);
+ALTER TABLE company_settings ADD COLUMN google_drive_folder VARCHAR(200);
+ALTER TABLE company_settings ADD COLUMN backup_frequency VARCHAR(50) DEFAULT 'manual';
+ALTER TABLE company_settings ADD COLUMN backup_keep_count INT DEFAULT 10;
+ALTER TABLE company_settings ADD COLUMN logo_path VARCHAR(500);
+ALTER TABLE company_settings ADD COLUMN default_signature_path VARCHAR(500);
+ALTER TABLE company_settings ADD COLUMN upi_id VARCHAR(100);
+ALTER TABLE company_settings ADD COLUMN invoice_footer TEXT;
 
-ALTER TABLE invoices
-  ADD COLUMN IF NOT EXISTS customer_name VARCHAR(200),
-  ADD COLUMN IF NOT EXISTS customer_email VARCHAR(150),
-  ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(20),
-  ADD COLUMN IF NOT EXISTS paid_amount DECIMAL(15,2) DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS balance_due DECIMAL(15,2) DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS payment_mode VARCHAR(50),
-  ADD COLUMN IF NOT EXISTS is_finalized BOOLEAN DEFAULT FALSE;
+-- products
+ALTER TABLE products ADD COLUMN sac_code VARCHAR(20);
+ALTER TABLE products ADD COLUMN bulk_min_qty INT DEFAULT 1;
+ALTER TABLE products ADD COLUMN marketplace_website BOOLEAN DEFAULT FALSE;
+ALTER TABLE products ADD COLUMN thickness VARCHAR(50);
 
--- company_settings: add google/backup/settings columns
-ALTER TABLE company_settings
-  ADD COLUMN IF NOT EXISTS google_tokens TEXT,
-  ADD COLUMN IF NOT EXISTS google_drive_email VARCHAR(200),
-  ADD COLUMN IF NOT EXISTS google_drive_folder VARCHAR(200),
-  ADD COLUMN IF NOT EXISTS backup_frequency VARCHAR(50) DEFAULT 'manual',
-  ADD COLUMN IF NOT EXISTS backup_keep_count INT DEFAULT 10,
-  ADD COLUMN IF NOT EXISTS logo_path VARCHAR(500),
-  ADD COLUMN IF NOT EXISTS default_signature_path VARCHAR(500),
-  ADD COLUMN IF NOT EXISTS upi_id VARCHAR(100),
-  ADD COLUMN IF NOT EXISTS invoice_footer TEXT;
+-- customers
+ALTER TABLE customers ADD COLUMN alt_phone VARCHAR(20);
+ALTER TABLE customers ADD COLUMN customer_group VARCHAR(100);
+ALTER TABLE customers ADD COLUMN outstanding_balance DECIMAL(15,2) DEFAULT 0;
 
--- products: add missing columns
-ALTER TABLE products
-  ADD COLUMN IF NOT EXISTS sac_code VARCHAR(20),
-  ADD COLUMN IF NOT EXISTS bulk_min_qty INT DEFAULT 1,
-  ADD COLUMN IF NOT EXISTS marketplace_website BOOLEAN DEFAULT FALSE,
-  ADD COLUMN IF NOT EXISTS thickness VARCHAR(50);
+-- payments
+ALTER TABLE payments ADD COLUMN bank_name VARCHAR(200);
+ALTER TABLE payments ADD COLUMN cheque_number VARCHAR(50);
+ALTER TABLE payments ADD COLUMN clearing_date DATE;
+ALTER TABLE payments ADD COLUMN customer_name VARCHAR(200);
+ALTER TABLE payments ADD COLUMN refund_amount DECIMAL(15,2) DEFAULT 0;
 
--- customers: add missing columns
-ALTER TABLE customers
-  ADD COLUMN IF NOT EXISTS alt_phone VARCHAR(20),
-  ADD COLUMN IF NOT EXISTS customer_group VARCHAR(100),
-  ADD COLUMN IF NOT EXISTS outstanding_balance DECIMAL(15,2) DEFAULT 0;
+-- expenses
+ALTER TABLE expenses ADD COLUMN gst_percent DECIMAL(5,2) DEFAULT 0;
+ALTER TABLE expenses ADD COLUMN reference_number VARCHAR(200);
+ALTER TABLE expenses ADD COLUMN vendor VARCHAR(200);
 
--- payments: add missing columns
-ALTER TABLE payments
-  ADD COLUMN IF NOT EXISTS bank_name VARCHAR(200),
-  ADD COLUMN IF NOT EXISTS cheque_number VARCHAR(50),
-  ADD COLUMN IF NOT EXISTS clearing_date DATE,
-  ADD COLUMN IF NOT EXISTS customer_name VARCHAR(200),
-  ADD COLUMN IF NOT EXISTS refund_amount DECIMAL(15,2) DEFAULT 0;
+-- shipments
+ALTER TABLE shipments ADD COLUMN customer_name VARCHAR(200);
+ALTER TABLE shipments ADD COLUMN actual_delivery DATE;
+ALTER TABLE shipments ADD COLUMN cod_amount DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE shipments ADD COLUMN insurance_amount DECIMAL(15,2) DEFAULT 0;
 
--- expenses: add missing columns
-ALTER TABLE expenses
-  ADD COLUMN IF NOT EXISTS gst_percent DECIMAL(5,2) DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS reference_number VARCHAR(200),
-  ADD COLUMN IF NOT EXISTS vendor VARCHAR(200);
+-- users
+ALTER TABLE users ADD COLUMN signature_path VARCHAR(500);
 
--- shipments: add missing columns
-ALTER TABLE shipments
-  ADD COLUMN IF NOT EXISTS customer_name VARCHAR(200),
-  ADD COLUMN IF NOT EXISTS actual_delivery DATE,
-  ADD COLUMN IF NOT EXISTS cod_amount DECIMAL(15,2) DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS insurance_amount DECIMAL(15,2) DEFAULT 0;
+-- order_items
+ALTER TABLE order_items ADD COLUMN size VARCHAR(100);
+ALTER TABLE order_items ADD COLUMN discount_percent DECIMAL(5,2) DEFAULT 0;
+ALTER TABLE order_items ADD COLUMN subtotal DECIMAL(15,2) DEFAULT 0;
+ALTER TABLE order_items ADD COLUMN personalization TEXT;
 
--- users: add missing columns
-ALTER TABLE users
-  ADD COLUMN IF NOT EXISTS signature_path VARCHAR(500);
-
--- order_items: add missing columns
-ALTER TABLE order_items
-  ADD COLUMN IF NOT EXISTS size VARCHAR(100),
-  ADD COLUMN IF NOT EXISTS discount_percent DECIMAL(5,2) DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS subtotal DECIMAL(15,2) DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS personalization TEXT;
-
--- change_requests: add missing columns
-ALTER TABLE change_requests
-  ADD COLUMN IF NOT EXISTS change_type VARCHAR(200),
-  ADD COLUMN IF NOT EXISTS priority ENUM('low','medium','high') DEFAULT 'medium',
-  ADD COLUMN IF NOT EXISTS field_name VARCHAR(100),
-  ADD COLUMN IF NOT EXISTS current_value TEXT,
-  ADD COLUMN IF NOT EXISTS requested_value TEXT;
+-- change_requests
+ALTER TABLE change_requests ADD COLUMN change_type VARCHAR(200);
+ALTER TABLE change_requests ADD COLUMN priority ENUM('low','medium','high') DEFAULT 'medium';
+ALTER TABLE change_requests ADD COLUMN field_name VARCHAR(100);
+ALTER TABLE change_requests ADD COLUMN current_value TEXT;
+ALTER TABLE change_requests ADD COLUMN requested_value TEXT;
