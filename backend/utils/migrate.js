@@ -11,10 +11,10 @@ async function runMigrations() {
     try {
       await db.query('SELECT 1 FROM users LIMIT 1');
     } catch (err) {
-      if (err.code === 'ER_NO_SUCH_TABLE') {
-        schemaNeeded = true;
-      }
+      console.log('Verification check for users table failed:', err.message);
+      schemaNeeded = true;
     }
+
 
     if (schemaNeeded) {
       const dbSqlPath = path.join(__dirname, '../database.sql');
