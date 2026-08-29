@@ -421,7 +421,7 @@ export default function Backup() {
           <h2 style={{ ...sectionTitle, marginBottom: 0 }}>Backup History</h2>
           <button onClick={fetchHistory} style={btnOutline}>Refresh</button>
         </div>
-        {history.length === 0 ? (
+        {(!Array.isArray(history) || history.length === 0) ? (
           <p style={{ color: '#9CA3AF', textAlign: 'center', padding: 24 }}>
             No backups yet
           </p>
@@ -466,6 +466,7 @@ export default function Backup() {
           </div>
         )}
       </div>
+
 
       {/* ── SECTION D: RESTORE ── */}
       <div style={{ ...cardStyle, background: '#FFF5F5', border: '1px solid #FECACA' }}>
