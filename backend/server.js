@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
@@ -61,17 +62,25 @@ require('./utils/migrate')();
 app.get('/api/health', (req, res) => res.json({ status: 'OK', time: new Date() }));
 
 // Serve frontend in production
-app.use(express.static(path.join(__dirname, '../frontend/build')));
-
-// API 404 Handler - MUST be before the generic '*' handler
-app.use('/api/*', (req, res) => {
-  res.status(404).json({ error: 'API endpoint not found' });
-});
-
-// Fallback for React Router
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
-});
+const buildPath = path.join(__dirname, '../frontend/build');
+if (fs.existsSync(buildPath)) {
+  app.use(express.static(buildPath));
+  // API 404 Handler - MUST be before the generic '*' handler
+  app.use('/api/*', (req, res) => {
+    res.status(404).json({ error: 'API endpoint not found' });
+  });
+  // Fallback for React Router
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(path.join(buildPath, 'index.html'));
+    }
+  });
+} else {
+  // API 404 Handler when no frontend build exists
+  app.use('/api/*', (req, res) => {
+    res.status(404).json({ error: 'API endpoint not found' });
+  });
+}
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => console.log(`Olive Seeds ERP running on port ${PORT}`));

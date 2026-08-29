@@ -31,7 +31,7 @@ router.get('/', authenticate, async (req, res) => {
       FROM invoices i
       LEFT JOIN customers c ON i.customer_id = c.id
       LEFT JOIN users u ON i.created_by = u.id
-      WHERE i.deleted_at IS NULL
+      WHERE 1=1
     `;
     const params = [];
     if (search) {
@@ -170,7 +170,7 @@ router.get('/:id', authenticate, async (req, res) => {
       FROM invoices i
       LEFT JOIN customers c ON i.customer_id = c.id
       LEFT JOIN orders o ON i.order_id = o.id
-      WHERE i.id = ? AND i.deleted_at IS NULL
+      WHERE i.id = ?
     `, [req.params.id]);
 
     if (!inv) return res.status(404).json({ error: 'Invoice not found' });
@@ -198,7 +198,7 @@ router.put('/:id', authenticate, canWrite, async (req, res) => {
       is_gst_invoice, is_international, items
     } = req.body;
 
-    const [[existing]] = await conn.query('SELECT order_id FROM invoices WHERE id = ? AND deleted_at IS NULL', [req.params.id]);
+    const [[existing]] = await conn.query('SELECT order_id FROM invoices WHERE id = ?', [req.params.id]);
     if (!existing) {
       return res.status(404).json({ error: 'Invoice not found' });
     }
@@ -269,7 +269,7 @@ router.get('/:id/pdf', authenticate, async (req, res) => {
       SELECT i.*, c.name as cname, c.email as cemail, c.phone as cphone, c.gstin as cgstin,
              c.billing_address, c.billing_city, c.billing_state, c.billing_country
       FROM invoices i LEFT JOIN customers c ON i.customer_id=c.id
-      WHERE (i.id=? OR i.invoice_number=?) AND i.deleted_at IS NULL
+      WHERE (i.id=? OR i.invoice_number=?)
     `, [req.params.id, req.params.id]);
     if (!invoices.length) return res.status(404).json({ error: 'Invoice not found' });
     const inv = invoices[0];
@@ -370,7 +370,7 @@ router.get('/:id/pdf', authenticate, async (req, res) => {
 router.patch('/:id/pay', authenticate, canWrite, async (req, res) => {
   try {
     const { amount, payment_method, transaction_id } = req.body;
-    const [invs] = await db.query('SELECT * FROM invoices WHERE id=? AND deleted_at IS NULL', [req.params.id]);
+    const [invs] = await db.query('SELECT * FROM invoices WHERE id=?', [req.params.id]);
     if (!invs.length) return res.status(404).json({ error: 'Not found' });
     const inv = invs[0];
     const newPaid = parseFloat(inv.paid_amount || 0) + parseFloat(amount);

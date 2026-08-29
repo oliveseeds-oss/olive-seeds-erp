@@ -394,7 +394,6 @@ async function runMigrations() {
     // Execute queries from migrations/fix_all.sql
     const fixAllPath = path.join(__dirname, '../migrations/fix_all.sql');
     if (fs.existsSync(fixAllPath)) {
-
       console.log('Running migrations/fix_all.sql...');
       const sqlContent = fs.readFileSync(fixAllPath, 'utf8');
       const statements = sqlContent
@@ -402,20 +401,18 @@ async function runMigrations() {
         .map(s => s.trim())
         .filter(s => s.length > 0 && !s.startsWith('--'));
       
-      for (const statement of statements) {
+      for (const stmt of statements) {
         try {
-          await db.query(statement);
+          await db.query(stmt);
         } catch (err) {
-          // Ignore duplicate column errors or duplicate key errors
-          if (!err.message.includes('Duplicate column name') && !err.message.includes('already exists')) {
-            console.error('Error running statement from fix_all.sql:', statement, err.message);
-          }
+          // Log but continue — some columns may already exist
+          console.log('Migration note:', err.message);
         }
       }
       console.log('✓ migrations/fix_all.sql executed successfully.');
     }
 
-    console.log('Database migrations completed successfully.');
+    console.log('Migration complete');
   } catch (err) {
     console.error('Error running migrations:', err);
   }

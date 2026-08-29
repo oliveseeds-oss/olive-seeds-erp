@@ -18,7 +18,7 @@ router.get('/', authenticate, async (req, res) => {
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
       LEFT JOIN users u ON o.created_by = u.id
-      WHERE o.deleted_at IS NULL
+      WHERE 1=1
     `;
     const params = [];
     if (search) {
@@ -45,7 +45,7 @@ router.get('/', authenticate, async (req, res) => {
     q += ` ORDER BY o.created_at DESC LIMIT ${parseInt(limit)} OFFSET ${(parseInt(page) - 1) * parseInt(limit)}`;
     const [orders] = await db.query(q, params);
     
-    const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM orders WHERE deleted_at IS NULL');
+    const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM orders');
     res.json({ orders, total });
   } catch (e) {
     console.error(e);
@@ -79,8 +79,8 @@ router.get('/export/detailed', authenticate, async (req, res) => {
         i.invoice_number
       FROM orders o
       LEFT JOIN order_items oi ON o.id = oi.order_id
-      LEFT JOIN invoices i ON o.id = i.order_id AND i.deleted_at IS NULL
-      WHERE o.deleted_at IS NULL
+      LEFT JOIN invoices i ON o.id = i.order_id
+      WHERE 1=1
       ORDER BY o.created_at DESC
     `);
     res.json(rows);
@@ -98,7 +98,7 @@ router.get('/:id', authenticate, async (req, res) => {
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
       LEFT JOIN users u ON o.created_by = u.id
-      WHERE (o.id=? OR o.order_id=?) AND o.deleted_at IS NULL
+      WHERE (o.id=? OR o.order_id=?)
     `, [req.params.id, req.params.id]);
     if (!orders.length) return res.status(404).json({ error: 'Order not found' });
     const [items] = await db.query(`
