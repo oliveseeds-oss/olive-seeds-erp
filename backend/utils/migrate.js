@@ -216,6 +216,7 @@ async function runMigrations() {
         bill_id INT NOT NULL,
         product_id INT,
         product_name VARCHAR(500) NOT NULL,
+        description TEXT,
         quantity INT NOT NULL,
         unit_price DECIMAL(15,2) NOT NULL,
         discount_percent DECIMAL(5,2) DEFAULT 0,
@@ -223,6 +224,7 @@ async function runMigrations() {
         FOREIGN KEY (bill_id) REFERENCES quick_bills_physical(id) ON DELETE CASCADE
       )
     `);
+
 
     // Create quick_bills_digital
     await db.query(`
@@ -308,6 +310,10 @@ async function runMigrations() {
     await addColumnSafely('company_settings', 'counter_ph', 'INT DEFAULT 1');
     await addColumnSafely('company_settings', 'counter_db', 'INT DEFAULT 1');
     await addColumnSafely('company_settings', 'counter_dg', 'INT DEFAULT 1');
+
+    // Quick Bill physical items
+    await addColumnSafely('quick_bill_physical_items', 'description', 'TEXT DEFAULT NULL');
+
 
     // Orders
     await addColumnSafely('orders', 'order_time', 'TIME');
