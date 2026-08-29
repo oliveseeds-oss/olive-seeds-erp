@@ -303,6 +303,9 @@ async function runMigrations() {
     await addColumnSafely('company_settings', 'keep_backups', 'INT DEFAULT 10');
     await addColumnSafely('company_settings', 'google_drive_connected', 'BOOLEAN DEFAULT FALSE');
     await addColumnSafely('company_settings', 'google_drive_email', 'VARCHAR(255)');
+    await addColumnSafely('company_settings', 'google_tokens', 'TEXT');
+    await addColumnSafely('company_settings', 'google_drive_folder', "VARCHAR(255) DEFAULT 'OliveSeeds ERP Backups'");
+    await addColumnSafely('company_settings', 'backup_keep_count', 'INT DEFAULT 10');
     await addColumnSafely('company_settings', 'default_signature_path', 'VARCHAR(500) DEFAULT NULL');
     await addColumnSafely('company_settings', 'logo_path', 'VARCHAR(500) DEFAULT NULL');
 
@@ -314,6 +317,7 @@ async function runMigrations() {
 
     // Quick Bill physical items
     await addColumnSafely('quick_bill_physical_items', 'description', 'TEXT DEFAULT NULL');
+    await addColumnSafely('quick_bill_digital_items', 'description', 'TEXT DEFAULT NULL');
 
 
     // Orders
