@@ -19,3 +19,7 @@ CREATE TABLE IF NOT EXISTS backup_history (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
+
+-- Add description columns to quick_bill items tables
+ALTER TABLE quick_bill_physical_items ADD COLUMN IF NOT EXISTS description TEXT DEFAULT NULL;
+ALTER TABLE quick_bill_digital_items ADD COLUMN IF NOT EXISTS description TEXT DEFAULT NULL;
