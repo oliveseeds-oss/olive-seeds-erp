@@ -403,7 +403,7 @@ export default function Quotations() {
                       <Btn variant="outline" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => handleDownloadPDF(row.id)}>
                         ⬇️ PDF
                       </Btn>
-                      {row.status !== 'accepted' && (
+                      {user?.role !== 'viewer' && row.status !== 'accepted' && (
                         <>
                           <Btn variant="outline" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => handleConvertInvoice(row.id)}>
                             🧾 Invoice
@@ -413,19 +413,19 @@ export default function Quotations() {
                           </Btn>
                         </>
                       )}
+                      {user?.role !== 'viewer' && (
+                        <Btn variant="outline" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => triggerEdit(row)}>
+                          Edit
+                        </Btn>
+                      )}
                       {isAdmin && (
-                        <>
-                          <Btn variant="outline" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => triggerEdit(row)}>
-                            Edit
-                          </Btn>
-                          <Btn 
-                            variant="outline" 
-                            style={{ padding: '4px 8px', fontSize: '11px', color: '#DC2626', borderColor: '#FECACA' }} 
-                            onClick={() => setDeleteId(row.id)}
-                          >
-                            Delete
-                          </Btn>
-                        </>
+                        <Btn 
+                          variant="outline" 
+                          style={{ padding: '4px 8px', fontSize: '11px', color: '#DC2626', borderColor: '#FECACA' }} 
+                          onClick={() => setDeleteId(row.id)}
+                        >
+                          Delete
+                        </Btn>
                       )}
                     </div>
                   </td>
