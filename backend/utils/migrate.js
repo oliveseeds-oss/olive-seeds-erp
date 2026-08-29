@@ -385,6 +385,12 @@ async function runMigrations() {
     await addColumnSafely('shipments', 'insurance_amount', 'DECIMAL(15,2) DEFAULT 0');
     await addColumnSafely('shipments', 'shipping_label_url', 'VARCHAR(500)');
 
+    // Add deleted_at columns for orders, invoices, quotations, and expenses
+    await addColumnSafely('orders', 'deleted_at', 'TIMESTAMP NULL DEFAULT NULL');
+    await addColumnSafely('invoices', 'deleted_at', 'TIMESTAMP NULL DEFAULT NULL');
+    await addColumnSafely('quotations', 'deleted_at', 'TIMESTAMP NULL DEFAULT NULL');
+    await addColumnSafely('expenses', 'deleted_at', 'TIMESTAMP NULL DEFAULT NULL');
+
     // Execute queries from migrations/fix_all.sql
     const fixAllPath = path.join(__dirname, '../migrations/fix_all.sql');
     if (fs.existsSync(fixAllPath)) {
