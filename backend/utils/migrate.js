@@ -22,36 +22,30 @@ async function runMigrations() {
         console.log('Core tables missing. Loading database.sql schema...');
         const sqlContent = fs.readFileSync(dbSqlPath, 'utf8');
         
-        // Advanced SQL splitter that ignores comments and extracts statements correctly
-        const statements = [];
-        let currentStatement = '';
-        const lines = sqlContent.split('\n');
+        // Remove SQL comments block
+        const cleanSql = sqlContent
+          .replace(/\/\*[\s\S]*?\*\//g, '') // Remove /* ... */ comments
+          .replace(/--.*$/gm, '')           // Remove -- comments
+          .replace(/#.*$/gm, '');           // Remove # comments
+
+        // Split by semicolons while ignoring them inside text/inserts
+        const statements = cleanSql
+          .split(';')
+          .map(s => s.trim())
+          .filter(s => s.length > 0 && !s.startsWith('CREATE DATABASE') && !s.startsWith('USE'));
         
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || trimmed.startsWith('--') || trimmed.startsWith('#') || trimmed.startsWith('/*')) {
-            continue;
-          }
-          currentStatement += line + '\n';
-          if (trimmed.endsWith(';')) {
-            const stmt = currentStatement.trim().replace(/;$/, '');
-            if (stmt && !stmt.startsWith('CREATE DATABASE') && !stmt.startsWith('USE')) {
-              statements.push(stmt);
-            }
-            currentStatement = '';
-          }
-        }
-        
+        console.log(`Parsed ${statements.length} statements from database.sql`);
         for (const statement of statements) {
           try {
             await db.query(statement);
           } catch (stmtErr) {
-            console.error('Error executing statement from database.sql:', stmtErr.message, 'Query:', statement.substring(0, 100));
+            console.error('Error executing statement from database.sql:', stmtErr.message, 'Query fragment:', statement.substring(0, 150));
           }
         }
         console.log('✓ database.sql executed successfully.');
       }
     }
+
 
 
     // 1. Create quotations tables
