@@ -8,8 +8,8 @@ const NAV = [
   { to: '/', label: 'Dashboard', exact: true },
   
   { section: '─── BILLING ───' },
-  { to: '/quickbill', label: 'Quick Bill', adminOnly: true },
-  { to: '/orders/new', label: 'New Order', adminOnly: true },
+  { to: '/quickbill', label: 'Quick Bill' },
+  { to: '/orders/new', label: 'New Order' },
   { to: '/orders', label: 'Orders' },
   { to: '/invoices', label: 'Invoices' },
   { to: '/digital-invoices', label: 'Digital Invoices' },
@@ -35,8 +35,8 @@ const NAV = [
   { section: '─── SYSTEM ───' },
   { to: '/changes', label: 'Change Requests' },
   { to: '/backup', label: 'Backup' },
-  { to: '/settings', label: 'Settings', adminOnly: true },
-  { to: '/users', label: 'Users', adminOnly: true }
+  { to: '/settings', label: 'Settings' },
+  { to: '/users', label: 'Users' }
 ];
 
 export default function Layout() {

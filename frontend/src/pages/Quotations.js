@@ -308,7 +308,7 @@ export default function Quotations() {
         title="Quotations"
         actions={
           <>
-            {isAdmin && (
+            {user?.role !== 'viewer' && (
               <Btn variant="primary" onClick={() => { setForm(EMPTY_FORM); setIsEdit(false); setShowFormModal(true); }}>
                 + Add Quotation
               </Btn>

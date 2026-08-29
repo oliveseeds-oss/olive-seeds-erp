@@ -30,10 +30,6 @@ export default function Users() {
   };
 
   useEffect(() => {
-    if (user?.role !== 'admin') {
-      setLoading(false);
-      return;
-    }
     fetchUsers();
   }, [user]);
 
@@ -109,13 +105,6 @@ export default function Users() {
     }
   };
 
-  if (user?.role !== 'admin') {
-    return (
-      <Card style={{ padding: '24px', textAlign: 'center', color: '#EF4444' }}>
-        Access Denied. You do not have permission to view this page.
-      </Card>
-    );
-  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -123,9 +112,11 @@ export default function Users() {
       <PageHeader 
         title="Users"
         actions={
-          <Btn variant="primary" onClick={() => { setForm({ name: '', email: '', password: '', role: 'viewer', phone: '', signature_path: '' }); setEditId(null); setErrors({}); setShowFormModal(true); }}>
-            + Add User
-          </Btn>
+          user?.role === 'admin' ? (
+            <Btn variant="primary" onClick={() => { setForm({ name: '', email: '', password: '', role: 'viewer', phone: '', signature_path: '' }); setEditId(null); setErrors({}); setShowFormModal(true); }}>
+              + Add User
+            </Btn>
+          ) : null
         }
       />
 
@@ -139,7 +130,7 @@ export default function Users() {
               <th style={{ padding: '12px 16px', color: '#6B7280' }}>Phone</th>
               <th style={{ padding: '12px 16px', color: '#6B7280' }}>Role</th>
               <th style={{ padding: '12px 16px', color: '#6B7280' }}>Last Login</th>
-              <th style={{ padding: '12px 16px', color: '#6B7280', textAlign: 'right' }}>Actions</th>
+              {user?.role === 'admin' && <th style={{ padding: '12px 16px', color: '#6B7280', textAlign: 'right' }}>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -159,26 +150,28 @@ export default function Users() {
                     <span className="badge-status status-completed">{row.role}</span>
                   </td>
                   <td style={{ padding: '12px 16px', color: '#374151' }}>{row.last_login ? fmtDate(row.last_login) : 'Never'}</td>
-                  <td style={{ padding: '12px 16px', textAlign: 'right', display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
-                    {!['USR001', 'USR002', 'USR003'].includes(row.user_id) ? (
-                      <>
-                        <Btn variant="outline" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => { setForm(row); setEditId(row.id); setErrors({}); setShowFormModal(true); }}>
-                          Edit
-                        </Btn>
-                        {row.id !== user.id && (
-                          <Btn variant="danger" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => setDeleteId(row.id)}>
-                            Delete
+                  {user?.role === 'admin' && (
+                    <td style={{ padding: '12px 16px', textAlign: 'right', display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
+                      {!['USR001', 'USR002', 'USR003'].includes(row.user_id) ? (
+                        <>
+                          <Btn variant="outline" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => { setForm(row); setEditId(row.id); setErrors({}); setShowFormModal(true); }}>
+                            Edit
                           </Btn>
-                        )}
-                      </>
-                    ) : (
-                      <span style={{ fontSize: '11px', color: '#9CA3AF' }}>System Reserved</span>
-                    )}
-                  </td>
+                          {row.id !== user.id && (
+                            <Btn variant="danger" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => setDeleteId(row.id)}>
+                              Delete
+                            </Btn>
+                          )}
+                        </>
+                      ) : (
+                        <span style={{ fontSize: '11px', color: '#9CA3AF' }}>System Reserved</span>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))
-            )}
-          </tbody>
+            )
+          }</tbody>
         </table>
       </Card>
 

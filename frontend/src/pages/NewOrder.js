@@ -3,13 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { Card, PageHeader, Btn, Input, Select, Textarea, Grid, fmt, showToast } from '../components/UI';
 
+import { useAuth } from '../utils/AuthContext';
+
 export default function NewOrder() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
   const [productSearch, setProductSearch] = useState('');
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (user?.role === 'viewer') {
+      navigate('/orders');
+    }
+  }, [user, navigate]);
 
   const [form, setForm] = useState({
     customer_id: '',

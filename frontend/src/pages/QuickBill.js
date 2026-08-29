@@ -12,7 +12,7 @@ export default function QuickBill() {
 
   // Toggle mode state: 'physical' or 'digital'
   const [mode, setMode] = useState('physical');
-  const [activeTab, setActiveTab] = useState('new'); // 'new' or 'history'
+  const [activeTab, setActiveTab] = useState(() => user?.role === 'viewer' ? 'history' : 'new'); // 'new' or 'history'
   const [editId, setEditId] = useState(null);
 
   const [companySettings, setCompanySettings] = useState({});
@@ -646,18 +646,19 @@ export default function QuickBill() {
         </div>
 
         {/* Tab selectors */}
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <Btn variant={activeTab === 'new' ? 'primary' : 'outline'} onClick={() => setActiveTab('new')}>
-            ⚡ New Bill
-          </Btn>
-          <Btn variant={activeTab === 'history' ? 'primary' : 'outline'} onClick={() => setActiveTab('history')}>
-            📋 Bill History
-          </Btn>
-        </div>
-
+        {user?.role !== 'viewer' && (
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <Btn variant={activeTab === 'new' ? 'primary' : 'outline'} onClick={() => setActiveTab('new')}>
+              ⚡ New Bill
+            </Btn>
+            <Btn variant={activeTab === 'history' ? 'primary' : 'outline'} onClick={() => setActiveTab('history')}>
+              📋 Bill History
+            </Btn>
+          </div>
+        )}
       </div>
 
-      {activeTab === 'new' ? (
+      {activeTab === 'new' && user?.role !== 'viewer' ? (
         mode === 'physical' ? (
           /* =================================================================
              MODE 1: PHYSICAL PRODUCT FORM
@@ -1497,9 +1498,11 @@ export default function QuickBill() {
                           <Btn variant="outline" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => handlePrint(row)}>
                             🖨️ Print
                           </Btn>
-                          <Btn variant="outline" style={{ padding: '4px 8px', fontSize: '11px', color: '#4F46E5', borderColor: '#C7D2FE' }} onClick={() => handleEditBill(row.id)}>
-                            ✏️ Edit
-                          </Btn>
+                          {isAdmin && (
+                            <Btn variant="outline" style={{ padding: '4px 8px', fontSize: '11px', color: '#4F46E5', borderColor: '#C7D2FE' }} onClick={() => handleEditBill(row.id)}>
+                              ✏️ Edit
+                            </Btn>
+                          )}
                           <Btn variant="outline" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => handleDownloadPDF(row)}>
                             📄 PDF
                           </Btn>

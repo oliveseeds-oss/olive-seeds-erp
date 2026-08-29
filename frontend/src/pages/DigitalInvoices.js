@@ -210,7 +210,7 @@ export default function DigitalInvoices() {
         title="Digital Invoices"
         actions={
           <>
-            {isAdmin && (
+            {user?.role !== 'viewer' && (
               <Btn variant="primary" onClick={() => { setForm(EMPTY_FORM); setIsEdit(false); setErrors({}); setShowFormModal(true); }}>
                 + Add Digital Invoice
               </Btn>

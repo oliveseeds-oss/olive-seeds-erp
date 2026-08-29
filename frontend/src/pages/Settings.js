@@ -22,10 +22,6 @@ export default function Settings() {
   };
 
   useEffect(() => {
-    if (user?.role !== 'admin') {
-      setLoading(false);
-      return;
-    }
     fetchSettings();
   }, [user]);
 
@@ -115,9 +111,11 @@ export default function Settings() {
       <PageHeader 
         title="Settings"
         actions={
-          <Btn variant="primary" onClick={saveSettings} disabled={saving}>
-            {saving ? 'Saving...' : 'Save Settings'}
-          </Btn>
+          user?.role === 'admin' ? (
+            <Btn variant="primary" onClick={saveSettings} disabled={saving}>
+              {saving ? 'Saving...' : 'Save Settings'}
+            </Btn>
+          ) : null
         }
       />
 
