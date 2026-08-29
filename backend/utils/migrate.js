@@ -295,6 +295,7 @@ async function runMigrations() {
 
     // User signature path
     await addColumnSafely('users', 'signature_path', 'VARCHAR(500) DEFAULT NULL');
+    await addColumnSafely('users', 'is_active', 'BOOLEAN DEFAULT TRUE');
 
     // Company Settings Backup fields
     await addColumnSafely('company_settings', 'backup_frequency', "VARCHAR(50) DEFAULT 'Weekly'");
@@ -346,6 +347,7 @@ async function runMigrations() {
     await addColumnSafely('products', 'sac_code', 'VARCHAR(20)');
     await addColumnSafely('products', 'bulk_min_qty', 'INT DEFAULT 1');
     await addColumnSafely('products', 'marketplace_website', 'BOOLEAN DEFAULT FALSE');
+    await addColumnSafely('products', 'is_active', 'BOOLEAN DEFAULT TRUE');
 
     // Expenses
     await addColumnSafely('expenses', 'gst_amount', 'DECIMAL(15,2) DEFAULT 0');

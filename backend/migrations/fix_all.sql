@@ -23,3 +23,7 @@ CREATE TABLE IF NOT EXISTS backup_history (
 -- Add description columns to quick_bill items tables
 ALTER TABLE quick_bill_physical_items ADD COLUMN IF NOT EXISTS description TEXT DEFAULT NULL;
 ALTER TABLE quick_bill_digital_items ADD COLUMN IF NOT EXISTS description TEXT DEFAULT NULL;
+
+-- Add is_active columns
+ALTER TABLE products ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
