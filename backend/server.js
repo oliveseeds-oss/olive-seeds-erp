@@ -55,9 +55,6 @@ app.use('/api/quotations', require('./routes/quotations'));
 app.use('/api/import-export', require('./routes/importExport'));
 app.use('/api/categories', require('./routes/categories'));
 
-// Run database migrations on startup
-require('./utils/migrate')();
-
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'OK', time: new Date() }));
 
@@ -82,5 +79,14 @@ if (fs.existsSync(buildPath)) {
   });
 }
 
+// Run migrations FIRST, then start server
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => console.log(`Olive Seeds ERP running on port ${PORT}`));
+const runMigrations = require('./utils/migrate');
+(async () => {
+  try {
+    await runMigrations();
+  } catch (err) {
+    console.error('Migration failed, starting anyway:', err.message);
+  }
+  app.listen(PORT, () => console.log(`Olive Seeds ERP running on port ${PORT}`));
+})();
