@@ -13,7 +13,10 @@ app.use(compression());
 app.set('trust proxy', 1);
 
 // Security
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({ 
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 const allowedOrigins = [
   'https://billapp.oliveseedsdesignstudio.com',
   'https://www.billapp.oliveseedsdesignstudio.com',
