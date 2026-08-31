@@ -322,8 +322,10 @@ export function buildBillHTML(data, paperSize = 'A4', settings = {}, userSig = n
     `);
   }
 
-  // CORRECT WAY — check base64 is valid before using (either from parameter or data property)
   const finalLogo = logoB64 || data.logoBase64;
+  const finalSig = userSig || data.signatureBase64;
+
+  // CORRECT WAY — check base64 is valid before using
   const logoHTML = (finalLogo && finalLogo.startsWith('data:'))
     ? `<img
         src="${finalLogo}"
@@ -338,7 +340,6 @@ export function buildBillHTML(data, paperSize = 'A4', settings = {}, userSig = n
        </div>`;
 
   // CORRECT WAY — check signature base64 is valid
-  const finalSig = userSig || data.signatureBase64;
   const signatureHTML = (finalSig && finalSig.startsWith('data:'))
     ? `<img
         src="${finalSig}"
@@ -824,8 +825,10 @@ export function buildQuotationHTML(data, settings = {}, staffObj = {}, logoB64 =
   const companyEmail = settings.email || data.companyEmail || 'info@oliveseedsdesignstudio.com';
   const companyWebsite = settings.website || data.companyWebsite || 'www.oliveseedsdesignstudio.com';
 
-  // CORRECT WAY — check base64 is valid before using (either from parameter or data property)
   const finalLogo = logoB64 || data.logoBase64;
+  const finalSig = sigB64 || data.signatureBase64;
+
+  // CORRECT WAY — check base64 is valid before using
   const logoHTML = (finalLogo && finalLogo.startsWith('data:'))
     ? `<img
         src="${finalLogo}"
@@ -840,7 +843,6 @@ export function buildQuotationHTML(data, settings = {}, staffObj = {}, logoB64 =
        </div>`;
 
   // CORRECT WAY — check signature base64 is valid
-  const finalSig = sigB64 || data.signatureBase64;
   const signatureHTML = (finalSig && finalSig.startsWith('data:'))
     ? `<img
         src="${finalSig}"
