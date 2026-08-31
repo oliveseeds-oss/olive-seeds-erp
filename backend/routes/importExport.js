@@ -213,14 +213,17 @@ router.post('/upload/:entity', authenticate, upload.single('file'), async (req, 
           );
           created++;
         } else if (entity === 'products') {
+          const [[{ cnt }]] = await db.query('SELECT COUNT(*) as cnt FROM products');
+          const productId = `PROD${String(cnt + created + 1).padStart(4, '0')}`;
           await db.query(`
             INSERT INTO products 
-            (name, product_type, sku, barcode, hsn_code, gst_percent,
+            (product_id, name, product_type, sku, barcode, hsn_code, gst_percent,
              purchase_price, selling_price, bulk_price, min_order,
              stock, reorder_level, material, color, finish, size,
              weight, description)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-            [row['Name*'] || row['Name'],
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+            [productId,
+             row['Name*'] || row['Name'],
              row['Type'] || 'physical',
              row['SKU'], row['Barcode'],
              row['HSN Code'],
