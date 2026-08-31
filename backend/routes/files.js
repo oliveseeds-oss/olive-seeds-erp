@@ -38,7 +38,6 @@ router.get('/logo', (req, res) => {
 });
 
 router.get('/signature/:name', (req, res) => {
-  const sigDir = path.join(UPLOADS_DIR, 'signatures');
   const name = req.params.name;
   
   // Security check — only allow safe filenames
@@ -46,9 +45,17 @@ router.get('/signature/:name', (req, res) => {
     return res.status(400).json({ error: 'Invalid name' });
   }
 
+  // If default, look in uploads/company, otherwise uploads/signatures
+  const targetDir = name === 'default'
+    ? path.join(UPLOADS_DIR, 'company')
+    : path.join(UPLOADS_DIR, 'signatures');
+    
+  // If default, filename is "signature", otherwise it's the requested name (e.g. user_1)
+  const targetName = name === 'default' ? 'signature' : name;
+
   const extensions = ['png', 'jpg', 'jpeg'];
   for (const ext of extensions) {
-    const filePath = path.join(sigDir, `${name}.${ext}`);
+    const filePath = path.join(targetDir, `${targetName}.${ext}`);
     if (fs.existsSync(filePath)) {
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Access-Control-Allow-Origin', '*');
@@ -57,7 +64,7 @@ router.get('/signature/:name', (req, res) => {
   }
 
   // Try without extension
-  const noExt = path.join(sigDir, name);
+  const noExt = path.join(targetDir, targetName);
   if (fs.existsSync(noExt)) {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Access-Control-Allow-Origin', '*');
