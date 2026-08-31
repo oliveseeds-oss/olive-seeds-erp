@@ -23,6 +23,17 @@ async function runMigrations() {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )`);
 
+    const [[{ uCount }]] = await db.query('SELECT COUNT(*) as uCount FROM users');
+    if (uCount === 0) {
+      await db.query(`
+        INSERT INTO users (user_id, name, email, password, role) VALUES 
+        ('USR001', 'Admin', 'admin@oliveseeds.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin'),
+        ('USR002', 'Employee', 'employee@oliveseeds.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'employee'),
+        ('USR003', 'Viewer', 'viewer@oliveseeds.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'viewer')
+      `);
+      console.log('✓ Seeded default users successfully.');
+    }
+
     // company_settings
     await db.query(`CREATE TABLE IF NOT EXISTS company_settings (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -49,6 +60,15 @@ async function runMigrations() {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )`);
 
+    const [[{ cCount }]] = await db.query('SELECT COUNT(*) as cCount FROM company_settings');
+    if (cCount === 0) {
+      await db.query(`
+        INSERT INTO company_settings (company_name, gstin, email, address, state, country, invoice_prefix, currency) VALUES
+        ('Olive Seeds Design Studio', 'YOUR_GSTIN', 'info@oliveseeds.com', 'Your Address', 'Tamil Nadu', 'India', 'OS', 'INR')
+      `);
+      console.log('✓ Seeded default company settings successfully.');
+    }
+
     // categories
     await db.query(`CREATE TABLE IF NOT EXISTS categories (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -57,6 +77,17 @@ async function runMigrations() {
       type ENUM('physical','digital','service') DEFAULT 'physical',
       description TEXT
     )`);
+
+    const [[{ catCount }]] = await db.query('SELECT COUNT(*) as catCount FROM categories');
+    if (catCount === 0) {
+      await db.query(`
+        INSERT INTO categories (name, type) VALUES 
+        ('Engraved Products', 'physical'),
+        ('Digital Downloads', 'digital'),
+        ('Design Services', 'service')
+      `);
+      console.log('✓ Seeded default categories successfully.');
+    }
 
     // customers
     await db.query(`CREATE TABLE IF NOT EXISTS customers (
