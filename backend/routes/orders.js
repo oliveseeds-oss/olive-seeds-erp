@@ -18,7 +18,7 @@ router.get('/', authenticate, async (req, res) => {
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
       LEFT JOIN users u ON o.created_by = u.id
-      WHERE 1=1
+      WHERE o.deleted_at IS NULL
     `;
     const params = [];
     if (search) {
@@ -45,7 +45,7 @@ router.get('/', authenticate, async (req, res) => {
     q += ` ORDER BY o.created_at DESC LIMIT ${parseInt(limit)} OFFSET ${(parseInt(page) - 1) * parseInt(limit)}`;
     const [orders] = await db.query(q, params);
     
-    const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM orders');
+    const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM orders WHERE deleted_at IS NULL');
     res.json({ orders, total });
   } catch (e) {
     console.error(e);

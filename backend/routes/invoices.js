@@ -31,7 +31,7 @@ router.get('/', authenticate, async (req, res) => {
       FROM invoices i
       LEFT JOIN customers c ON i.customer_id = c.id
       LEFT JOIN users u ON i.created_by = u.id
-      WHERE 1=1
+      WHERE i.deleted_at IS NULL
     `;
     const params = [];
     if (search) {

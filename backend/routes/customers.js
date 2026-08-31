@@ -12,7 +12,7 @@ const genCustomerId = async () => {
 router.get('/', authenticate, async (req, res) => {
   try {
     const { search, type, page = 1, limit = 50 } = req.query;
-    let query = 'SELECT * FROM customers WHERE is_active = 1';
+    let query = 'SELECT * FROM customers WHERE deleted_at IS NULL';
     const params = [];
     if (search) {
       query += ' AND (name LIKE ? OR email LIKE ? OR phone LIKE ? OR customer_id LIKE ? OR company_name LIKE ?)';
@@ -25,7 +25,7 @@ router.get('/', authenticate, async (req, res) => {
     }
     query += ` ORDER BY created_at DESC LIMIT ${parseInt(limit)} OFFSET ${(parseInt(page) - 1) * parseInt(limit)}`;
     const [customers] = await db.query(query, params);
-    const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM customers WHERE is_active = 1');
+    const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM customers WHERE deleted_at IS NULL');
     res.json({ customers, total, page: parseInt(page) });
   } catch (err) {
     res.status(500).json({ error: 'Error fetching customers' });
@@ -104,7 +104,7 @@ router.put('/:id', authenticate, canModify, async (req, res) => {
 // Soft Delete (admin only)
 router.delete('/:id', authenticate, canModify, async (req, res) => {
   try {
-    await db.query('UPDATE customers SET deleted_at = NOW() WHERE id = ?', [req.params.id]);
+    await db.query('UPDATE customers SET is_active = 0, deleted_at = NOW() WHERE id = ?', [req.params.id]);
     await logActivity(req.user.id, 'DELETE', 'customers', req.params.id, null, null, req.ip);
     res.json({ message: 'Deleted' });
   } catch (err) {
