@@ -322,10 +322,11 @@ export function buildBillHTML(data, paperSize = 'A4', settings = {}, userSig = n
     `);
   }
 
-  // CORRECT WAY — check base64 is valid before using
-  const logoHTML = (data.logoBase64 && data.logoBase64.startsWith('data:'))
+  // CORRECT WAY — check base64 is valid before using (either from parameter or data property)
+  const finalLogo = logoB64 || data.logoBase64;
+  const logoHTML = (finalLogo && finalLogo.startsWith('data:'))
     ? `<img
-        src="${data.logoBase64}"
+        src="${finalLogo}"
         alt="Logo"
         style="max-height:55px;max-width:180px;
         object-fit:contain;display:block;"
@@ -337,9 +338,10 @@ export function buildBillHTML(data, paperSize = 'A4', settings = {}, userSig = n
        </div>`;
 
   // CORRECT WAY — check signature base64 is valid
-  const signatureHTML = (data.signatureBase64 && data.signatureBase64.startsWith('data:'))
+  const finalSig = userSig || data.signatureBase64;
+  const signatureHTML = (finalSig && finalSig.startsWith('data:'))
     ? `<img
-        src="${data.signatureBase64}"
+        src="${finalSig}"
         alt="Signature"
         style="max-height:50px;max-width:160px;
         object-fit:contain;display:block;margin:0 auto;"
@@ -822,10 +824,11 @@ export function buildQuotationHTML(data, settings = {}, staffObj = {}, logoB64 =
   const companyEmail = settings.email || data.companyEmail || 'info@oliveseedsdesignstudio.com';
   const companyWebsite = settings.website || data.companyWebsite || 'www.oliveseedsdesignstudio.com';
 
-  // CORRECT WAY — check base64 is valid before using
-  const logoHTML = (data.logoBase64 && data.logoBase64.startsWith('data:'))
+  // CORRECT WAY — check base64 is valid before using (either from parameter or data property)
+  const finalLogo = logoB64 || data.logoBase64;
+  const logoHTML = (finalLogo && finalLogo.startsWith('data:'))
     ? `<img
-        src="${data.logoBase64}"
+        src="${finalLogo}"
         alt="Logo"
         style="max-height:55px;max-width:180px;
         object-fit:contain;display:block;"
@@ -837,9 +840,10 @@ export function buildQuotationHTML(data, settings = {}, staffObj = {}, logoB64 =
        </div>`;
 
   // CORRECT WAY — check signature base64 is valid
-  const signatureHTML = (data.signatureBase64 && data.signatureBase64.startsWith('data:'))
+  const finalSig = sigB64 || data.signatureBase64;
+  const signatureHTML = (finalSig && finalSig.startsWith('data:'))
     ? `<img
-        src="${data.signatureBase64}"
+        src="${finalSig}"
         alt="Signature"
         style="max-height:50px;max-width:160px;
         object-fit:contain;display:block;margin:0 auto;"
