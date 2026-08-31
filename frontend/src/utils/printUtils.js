@@ -110,7 +110,13 @@ export async function fetchImageAsBase64(api, pathOrUrl) {
 export function getAbsoluteUrl(pathOrUrl) {
   if (!pathOrUrl) return '';
   if (pathOrUrl.startsWith('http') || pathOrUrl.startsWith('data:')) return pathOrUrl;
-  const origin = window.location.origin.replace(':3002', ':5000').replace(':3000', ':5000');
+  const apiBase = process.env.REACT_APP_API_URL || '';
+  const origin = apiBase 
+    ? apiBase.replace(/\/api$/, '') 
+    : window.location.origin
+        .replace('billapp', 'apiapp')
+        .replace(':3002', ':5001')
+        .replace(':3000', ':5001');
   return `${origin}${pathOrUrl}`;
 }
 
