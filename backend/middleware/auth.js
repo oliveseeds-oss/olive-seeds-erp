@@ -21,34 +21,36 @@ const authenticate = async (req, res, next) => {
 };
 
 const requireAdmin = (req, res, next) => {
-  if (req.user.role !== 'admin') {
+  if (req.user.role?.toLowerCase() !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
   }
   next();
 };
 
 const requireAdminOrEmployee = (req, res, next) => {
-  if (!['admin', 'employee'].includes(req.user.role)) {
+  const role = req.user.role?.toLowerCase();
+  if (!['admin', 'employee'].includes(role)) {
     return res.status(403).json({ error: 'Insufficient permissions' });
   }
   next();
 };
 
 const canWrite = (req, res, next) => {
-  if (req.user.role === 'viewer') {
+  if (req.user.role?.toLowerCase() === 'viewer') {
     return res.status(403).json({ error: 'Viewer role cannot make changes' });
   }
   next();
 };
 
 const canModify = (req, res, next) => {
-  if (req.user.role === 'employee') {
+  const role = req.user.role?.toLowerCase();
+  if (role === 'employee') {
     return res.status(403).json({ 
       error: 'Employee cannot modify existing records. Please submit a change request.',
       requiresChangeRequest: true
     });
   }
-  if (req.user.role === 'viewer') {
+  if (role === 'viewer') {
     return res.status(403).json({ error: 'Viewer role cannot make changes' });
   }
   next();
