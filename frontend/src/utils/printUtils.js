@@ -117,7 +117,8 @@ export function getAbsoluteUrl(pathOrUrl) {
         .replace('billapp', 'apiapp')
         .replace(':3002', ':5001')
         .replace(':3000', ':5001');
-  return `${origin}${pathOrUrl}`;
+  const separator = pathOrUrl.includes('?') ? '&' : '?';
+  return `${origin}${pathOrUrl}${separator}cb=${Date.now()}`;
 }
 
 // ── BUILD BILL HTML SAFELY ─────────────────────────
