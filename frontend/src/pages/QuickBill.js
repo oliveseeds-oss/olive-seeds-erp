@@ -3,7 +3,7 @@ import api from '../utils/api';
 import { useAuth } from '../utils/AuthContext';
 import { Card, Btn, Input, Select, Textarea, showToast, Modal, Grid, fmt, fmtDate, TableSkeleton } from '../components/UI';
 import ConfirmDelete from '../components/ConfirmDelete';
-import { buildBillHTML, downloadPDFBlob } from '../utils/printUtils';
+import { buildBillHTML, downloadPDFBlob, fetchLogoBase64, fetchSignatureBase64 } from '../utils/printUtils';
 import PrintOptions from '../components/PrintOptions';
 
 export default function QuickBill() {
@@ -284,6 +284,16 @@ export default function QuickBill() {
   const [lastSavedBill, setLastSavedBill] = useState(null);
 
   const handlePrint = async (billData) => {
+    try {
+      console.log('Fetching logo and signature for bill...');
+      await Promise.all([
+        fetchLogoBase64(api),
+        fetchSignatureBase64(api, billData.created_by || user?.id)
+      ]);
+    } catch (err) {
+      console.error('Error pre-fetching assets:', err);
+    }
+
     if (!billData.items || billData.items.length === 0) {
       try {
         const res = await api.get(`/quick-bill/${mode}/${billData.id}`);

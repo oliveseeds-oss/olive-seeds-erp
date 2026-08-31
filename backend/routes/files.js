@@ -1,28 +1,70 @@
 const router = require('express').Router();
 const path = require('path');
 const fs = require('fs');
-const { authenticate } = require('../middleware/auth');
 
-const sigDir = path.join(__dirname, '../../backend/uploads/signatures');
-const compDir = path.join(__dirname, '../../backend/uploads/company');
-
-if (!fs.existsSync(sigDir)) fs.mkdirSync(sigDir, { recursive: true });
-if (!fs.existsSync(compDir)) fs.mkdirSync(compDir, { recursive: true });
-
-router.get('/signature/:filename', authenticate, (req, res) => {
-  const file = path.join(sigDir, req.params.filename);
-  if (!fs.existsSync(file)) {
-    return res.status(404).json({ error: 'Signature not found' });
-  }
-  res.sendFile(file);
-});
+// Base uploads directory — works in Docker
+const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join('/app', 'uploads');
 
 router.get('/logo', (req, res) => {
-  const files = fs.readdirSync(compDir).filter(f => f.startsWith('logo.'));
-  if (!files.length) {
-    return res.status(404).json({ error: 'Logo not found' });
+  const companyDir = path.join(UPLOADS_DIR, 'company');
+  
+  // Try each extension
+  const extensions = ['png', 'jpg', 'jpeg', 'svg', 'webp'];
+  for (const ext of extensions) {
+    const filePath = path.join(companyDir, `logo.${ext}`);
+    if (fs.existsSync(filePath)) {
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      return res.sendFile(filePath);
+    }
   }
-  res.sendFile(path.join(compDir, files[0]));
+
+  // Try any file starting with "logo"
+  try {
+    if (fs.existsSync(companyDir)) {
+      const files = fs.readdirSync(companyDir);
+      const logoFile = files.find(f => f.toLowerCase().startsWith('logo'));
+      if (logoFile) {
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        return res.sendFile(path.join(companyDir, logoFile));
+      }
+    }
+  } catch (e) {
+    console.error('Logo dir error:', e.message);
+  }
+
+  return res.status(404).json({ error: 'No logo uploaded' });
+});
+
+router.get('/signature/:name', (req, res) => {
+  const sigDir = path.join(UPLOADS_DIR, 'signatures');
+  const name = req.params.name;
+  
+  // Security check — only allow safe filenames
+  if (!/^[a-zA-Z0-9_\-]+$/.test(name)) {
+    return res.status(400).json({ error: 'Invalid name' });
+  }
+
+  const extensions = ['png', 'jpg', 'jpeg'];
+  for (const ext of extensions) {
+    const filePath = path.join(sigDir, `${name}.${ext}`);
+    if (fs.existsSync(filePath)) {
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      return res.sendFile(filePath);
+    }
+  }
+
+  // Try without extension
+  const noExt = path.join(sigDir, name);
+  if (fs.existsSync(noExt)) {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    return res.sendFile(noExt);
+  }
+
+  return res.status(404).json({ error: 'Signature not found' });
 });
 
 module.exports = router;

@@ -6,17 +6,28 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join('/app', 'uploads');
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const sigDir = path.join(__dirname, '../uploads/signatures');
-    if (!fs.existsSync(sigDir)) {
-      fs.mkdirSync(sigDir, { recursive: true });
+    const dir = path.join(UPLOADS_DIR, 'signatures');
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
     }
-    cb(null, sigDir);
+    cb(null, dir);
   },
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname) || '.png';
-    cb(null, `user_${req.params.id || req.user.id}_signature${ext}`);
+    const userId = req.params.id || req.user.id;
+    const ext = path.extname(file.originalname).toLowerCase() || '.png';
+    // Delete old signature for this user
+    const dir = path.join(UPLOADS_DIR, 'signatures');
+    if (fs.existsSync(dir)) {
+      const files = fs.readdirSync(dir);
+      files.filter(f => f.startsWith(`user_${userId}`)).forEach(f => {
+        try { fs.unlinkSync(path.join(dir, f)); } catch {}
+      });
+    }
+    cb(null, `user_${userId}${ext}`);
   }
 });
 const upload = multer({ storage });

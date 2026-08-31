@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { downloadPDFBlob } from '../utils/printUtils';
+import { downloadPDFBlob, fetchLogoBase64, fetchSignatureBase64 } from '../utils/printUtils';
 import { Card, PageHeader, Btn, Grid, Input, Select, Textarea, TableSkeleton, fmt, fmtDate } from '../components/UI';
 import ConfirmDelete from '../components/ConfirmDelete';
 import PrintOptions from '../components/PrintOptions';
@@ -286,6 +286,16 @@ export default function Invoices() {
   };
 
   const handlePrintClick = async (inv) => {
+    try {
+      console.log('Fetching logo and signature for invoice...');
+      await Promise.all([
+        fetchLogoBase64(api),
+        fetchSignatureBase64(api, inv.created_by || user?.id)
+      ]);
+    } catch (err) {
+      console.error('Error pre-fetching assets:', err);
+    }
+
     try {
       const res = await api.get(`/invoices/${inv.id}`);
       setSelectedInvoice(res.data);

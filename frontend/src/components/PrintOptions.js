@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
-import { buildBillHTML, openPrintWindow, fetchImageAsBase64 } from '../utils/printUtils';
+import { buildBillHTML, openPrintWindow, fetchLogoBase64, fetchSignatureBase64 } from '../utils/printUtils';
 import api from '../utils/api';
 
 export default function PrintOptions({ open, onClose, billData, settings = {} }) {
@@ -13,8 +13,8 @@ export default function PrintOptions({ open, onClose, billData, settings = {} })
   const handlePrintNow = async () => {
     setPrinting(true);
     try {
-      const logoBase64 = await fetchImageAsBase64(api, settings.logo_path || '/files/logo');
-      const signatureBase64 = await fetchImageAsBase64(api, settings.default_signature_path);
+      const logoBase64 = await fetchLogoBase64(api);
+      const signatureBase64 = await fetchSignatureBase64(api, billData?.created_by || billData?.userId);
       const paperSz = paperSize === 'THERMAL_80' ? '80mm' : paperSize === 'THERMAL_58' ? '58mm' : paperSize;
       
       const billHTML = buildBillHTML(billData, paperSz, settings, signatureBase64, logoBase64);

@@ -3,7 +3,7 @@ import api from '../utils/api';
 import { useAuth } from '../utils/AuthContext';
 import { Card, PageHeader, Btn, Input, Select, Textarea, TableSkeleton, fmt, fmtDate, Modal, Grid } from '../components/UI';
 import ConfirmDelete from '../components/ConfirmDelete';
-import { downloadPDFBlob, fetchAsBase64, fetchImageAsBase64, buildQuotationHTML, openPrintWindow } from '../utils/printUtils';
+import { downloadPDFBlob, fetchAsBase64, fetchLogoBase64, fetchSignatureBase64, buildQuotationHTML, openPrintWindow } from '../utils/printUtils';
 import toast from 'react-hot-toast';
 
 const EMPTY_ITEM = {
@@ -261,8 +261,8 @@ export default function Quotations() {
       const res = await api.get(`/quotations/${id}`);
       const quo = res.data;
       
-      const logoBase64 = await fetchImageAsBase64(api, companySettings.logo_path || '/files/logo');
-      const signatureBase64 = await fetchImageAsBase64(api, userSignaturePath || companySettings.default_signature_path);
+      const logoBase64 = await fetchLogoBase64(api);
+      const signatureBase64 = await fetchSignatureBase64(api, user?.id);
       
       const dataToPrint = {
         ...quo,

@@ -5,17 +5,26 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join('/app', 'uploads');
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const compDir = path.join(__dirname, '../uploads/company');
-    if (!fs.existsSync(compDir)) {
-      fs.mkdirSync(compDir, { recursive: true });
+    const dir = path.join(UPLOADS_DIR, 'company');
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
     }
-    cb(null, compDir);
+    cb(null, dir);
   },
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname) || '.png';
+    const ext = path.extname(file.originalname).toLowerCase() || '.png';
     const prefix = file.fieldname === 'logo' ? 'logo' : 'signature';
+    const dir = path.join(UPLOADS_DIR, 'company');
+    if (fs.existsSync(dir)) {
+      const files = fs.readdirSync(dir);
+      files.filter(f => f.startsWith(prefix)).forEach(f => {
+        try { fs.unlinkSync(path.join(dir, f)); } catch {}
+      });
+    }
     cb(null, `${prefix}${ext}`);
   }
 });

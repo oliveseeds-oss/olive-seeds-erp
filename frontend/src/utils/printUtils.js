@@ -107,6 +107,102 @@ export async function fetchImageAsBase64(api, pathOrUrl) {
     return null;
   }
 }
+export async function fetchLogoBase64(api) {
+  try {
+    console.log('Fetching logo from /api/files/logo...');
+    const response = await api.get('/files/logo', {
+      responseType: 'blob',
+      timeout: 10000
+    });
+    console.log('Logo response status:', response.status);
+    console.log('Logo content-type:', response.headers['content-type']);
+    if (!response.data || response.data.size === 0) {
+      console.warn('Logo response is empty');
+      return null;
+    }
+    // Check if response is JSON error
+    const contentType = response.headers['content-type'] || '';
+    if (contentType.includes('application/json')) {
+      console.warn('Logo endpoint returned JSON — no logo uploaded');
+      return null;
+    }
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result;
+        if (result && result.startsWith('data:')) {
+          console.log('Logo base64 ready, length:', result.length);
+          resolve(result);
+        } else {
+          console.warn('Logo base64 result invalid:', result?.slice(0,50));
+          resolve(null);
+        }
+      };
+      reader.onerror = (err) => {
+        console.error('FileReader error for logo:', err);
+        resolve(null);
+      };
+      reader.readAsDataURL(response.data);
+    });
+  } catch (err) {
+    if (err.response?.status === 404) {
+      console.log('No logo uploaded yet');
+    } else {
+      console.error('Logo fetch failed:', err.message);
+    }
+    return null;
+  }
+}
+
+export async function fetchSignatureBase64(api, userId) {
+  // Try user's own signature first
+  const tryFetch = async (url) => {
+    try {
+      console.log('Fetching signature from:', url);
+      const response = await api.get(url, {
+        responseType: 'blob',
+        timeout: 10000
+      });
+      if (!response.data || response.data.size === 0) {
+        return null;
+      }
+      const contentType = response.headers['content-type'] || '';
+      if (contentType.includes('application/json')) {
+        return null;
+      }
+      return await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result;
+          if (result && result.startsWith('data:')) {
+            console.log('Signature base64 ready from:', url);
+            resolve(result);
+          } else {
+            resolve(null);
+          }
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(response.data);
+      });
+    } catch (err) {
+      if (err.response?.status !== 404) {
+        console.warn('Signature fetch error for', url, ':', err.message);
+      }
+      return null;
+    }
+  };
+
+  // Try user signature first
+  if (userId) {
+    const userSig = await tryFetch(`/files/signature/user_${userId}`);
+    if (userSig) return userSig;
+  }
+  // Fall back to company default signature
+  const defaultSig = await tryFetch('/files/signature/default');
+  if (defaultSig) return defaultSig;
+  console.log('No signature found for user:', userId);
+  return null;
+}
 export function getAbsoluteUrl(pathOrUrl) {
   if (!pathOrUrl) return '';
   if (pathOrUrl.startsWith('http') || pathOrUrl.startsWith('data:')) return pathOrUrl;
@@ -226,25 +322,49 @@ export function buildBillHTML(data, paperSize = 'A4', settings = {}, userSig = n
     `);
   }
 
-  const finalLogo = logoB64 || data.logoBase64 || settings.logo_path;
-  const logoHTML = finalLogo
-    ? `<img src="${getAbsoluteUrl(finalLogo)}"
-        alt="OLIVE SEEDS | Design Studio"
-        style="max-height: 60px; max-width: 240px; object-fit: contain; display: block;">`
-    : `<div style="font-size: 16pt; font-weight: 800; color: #1a1a3a; letter-spacing: 0.5px;">
-        OLIVE SEEDS | Design Studio
+  // CORRECT WAY — check base64 is valid before using
+  const logoHTML = (data.logoBase64 && data.logoBase64.startsWith('data:'))
+    ? `<img
+        src="${data.logoBase64}"
+        alt="Logo"
+        style="max-height:55px;max-width:180px;
+        object-fit:contain;display:block;"
+        onerror="this.style.display='none'"
+      >`
+    : `<div style="font-size:16pt;font-weight:700;color:#1A1A2E;
+        line-height:1.2;">
+        ${escapeHtml(data.companyName || 'Olive Seeds Design Studio')}
        </div>`;
 
-  const finalSig = userSig || data.signatureBase64 || settings.default_signature_path;
-  const signatureHTML = finalSig
-    ? `<img src="${getAbsoluteUrl(finalSig)}" style="max-height: 55px; max-width: 170px; object-fit: contain; display: block; margin: 0 auto;">`
-    : `<div style="height: 45px;"></div>`;
+  // CORRECT WAY — check signature base64 is valid
+  const signatureHTML = (data.signatureBase64 && data.signatureBase64.startsWith('data:'))
+    ? `<img
+        src="${data.signatureBase64}"
+        alt="Signature"
+        style="max-height:50px;max-width:160px;
+        object-fit:contain;display:block;margin:0 auto;"
+        onerror="this.style.display='none'"
+      >`
+    : `<div style="height:50px;"></div>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Invoice ${safe(billNumber)}</title>
+  <script>
+    window.addEventListener('load', function() {
+      var images = document.querySelectorAll('img');
+      images.forEach(function(img) {
+        if (img.complete && img.naturalWidth === 0) {
+          console.error('Image failed to load:', img.src.slice(0, 50));
+          img.style.display = 'none';
+        } else {
+          console.log('Image loaded OK:', img.src.slice(0, 30) + '...');
+        }
+      });
+    });
+  </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -702,19 +822,30 @@ export function buildQuotationHTML(data, settings = {}, staffObj = {}, logoB64 =
   const companyEmail = settings.email || data.companyEmail || 'info@oliveseedsdesignstudio.com';
   const companyWebsite = settings.website || data.companyWebsite || 'www.oliveseedsdesignstudio.com';
 
-  const finalLogo = logoB64 || data.logoBase64 || settings.logo_path;
-  const logoHTML = finalLogo
-    ? `<img src="${getAbsoluteUrl(finalLogo)}"
-        alt="OLIVE SEEDS | Design Studio"
-        style="max-height: 60px; max-width: 240px; object-fit: contain; display: block;">`
-    : `<div style="font-size: 16pt; font-weight: 800; color: #1a1a3a; letter-spacing: 0.5px;">
-        OLIVE SEEDS | Design Studio
+  // CORRECT WAY — check base64 is valid before using
+  const logoHTML = (data.logoBase64 && data.logoBase64.startsWith('data:'))
+    ? `<img
+        src="${data.logoBase64}"
+        alt="Logo"
+        style="max-height:55px;max-width:180px;
+        object-fit:contain;display:block;"
+        onerror="this.style.display='none'"
+      >`
+    : `<div style="font-size:16pt;font-weight:700;color:#1A1A2E;
+        line-height:1.2;">
+        ${escapeHtml(data.companyName || 'Olive Seeds Design Studio')}
        </div>`;
 
-  const finalSig = sigB64 || data.signatureBase64 || settings.default_signature_path;
-  const signatureHTML = finalSig
-    ? `<img src="${getAbsoluteUrl(finalSig)}" style="max-height: 55px; max-width: 170px; object-fit: contain; display: block; margin: 0 auto;">`
-    : `<div style="height: 45px;"></div>`;
+  // CORRECT WAY — check signature base64 is valid
+  const signatureHTML = (data.signatureBase64 && data.signatureBase64.startsWith('data:'))
+    ? `<img
+        src="${data.signatureBase64}"
+        alt="Signature"
+        style="max-height:50px;max-width:160px;
+        object-fit:contain;display:block;margin:0 auto;"
+        onerror="this.style.display='none'"
+      >`
+    : `<div style="height:50px;"></div>`;
 
   const itemRows = (data.items || []).map((item, i) => {
     const pName = item.product_name || item.productName || item.name || '';
@@ -752,6 +883,19 @@ export function buildQuotationHTML(data, settings = {}, staffObj = {}, logoB64 =
 <head>
   <meta charset="UTF-8">
   <title>Quotation ${safe(quotationNumber)}</title>
+  <script>
+    window.addEventListener('load', function() {
+      var images = document.querySelectorAll('img');
+      images.forEach(function(img) {
+        if (img.complete && img.naturalWidth === 0) {
+          console.error('Image failed to load:', img.src.slice(0, 50));
+          img.style.display = 'none';
+        } else {
+          console.log('Image loaded OK:', img.src.slice(0, 30) + '...');
+        }
+      });
+    });
+  </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1190,4 +1334,12 @@ export function amountToWordsIndian(amount) {
 
   const w = conv(n).trim() || 'Zero';
   return 'Rupees ' + w + ' Only';
+}
+
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
