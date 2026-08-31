@@ -725,6 +725,8 @@ async function runMigrations() {
     await addColumnSafely('orders', 'discount_percent', 'DECIMAL(5,2) DEFAULT 0');
     await addColumnSafely('orders', 'paid_amount', 'DECIMAL(15,2) DEFAULT 0');
     await addColumnSafely('orders', 'balance_due', 'DECIMAL(15,2) DEFAULT 0');
+    await addColumnSafely('orders', 'marketplace_order_id', 'VARCHAR(100) DEFAULT NULL');
+    await addColumnSafely('orders', 'laser_file_path', 'VARCHAR(500) DEFAULT NULL');
 
     // Order Items
     await addColumnSafely('order_items', 'size', 'VARCHAR(100)');
@@ -750,6 +752,17 @@ async function runMigrations() {
     await addColumnSafely('products', 'marketplace_website', 'BOOLEAN DEFAULT FALSE');
     await addColumnSafely('products', 'is_active', 'BOOLEAN DEFAULT TRUE');
     await addColumnSafely('products', 'finish', 'VARCHAR(100) DEFAULT NULL');
+    await addColumnSafely('products', 'barcode', 'VARCHAR(100) DEFAULT NULL');
+    await addColumnSafely('products', 'international_price', 'DECIMAL(15,2) DEFAULT NULL');
+    await addColumnSafely('products', 'min_order', 'INT DEFAULT 1');
+    await addColumnSafely('products', 'max_order', 'INT DEFAULT NULL');
+    await addColumnSafely('products', 'warehouse', 'VARCHAR(200) DEFAULT NULL');
+    await addColumnSafely('products', 'marketplace_amazon', 'TINYINT(1) DEFAULT 0');
+    await addColumnSafely('products', 'marketplace_flipkart', 'TINYINT(1) DEFAULT 0');
+    await addColumnSafely('products', 'marketplace_etsy', 'TINYINT(1) DEFAULT 0');
+    await addColumnSafely('products', 'amazon_asin', 'VARCHAR(50) DEFAULT NULL');
+    await addColumnSafely('products', 'flipkart_sku', 'VARCHAR(50) DEFAULT NULL');
+    await addColumnSafely('products', 'etsy_listing_id', 'VARCHAR(50) DEFAULT NULL');
 
     // Expenses
     await addColumnSafely('expenses', 'gst_amount', 'DECIMAL(15,2) DEFAULT 0');
@@ -782,10 +795,18 @@ async function runMigrations() {
     await addColumnSafely('shipments', 'cod_amount', 'DECIMAL(15,2) DEFAULT 0');
     await addColumnSafely('shipments', 'insurance_amount', 'DECIMAL(15,2) DEFAULT 0');
     await addColumnSafely('shipments', 'shipping_label_url', 'VARCHAR(500)');
+    await addColumnSafely('shipments', 'shipping_label_path', 'VARCHAR(500) DEFAULT NULL');
+    await addColumnSafely('shipments', 'insurance', 'DECIMAL(15,2) DEFAULT 0');
+    await addColumnSafely('shipments', 'payment_type', "ENUM('prepaid','cod') DEFAULT 'prepaid'");
+    await addColumnSafely('shipments', 'pickup_date', 'DATE DEFAULT NULL');
+    await addColumnSafely('shipments', 'length', 'DECIMAL(10,2) DEFAULT 0');
+    await addColumnSafely('shipments', 'width', 'DECIMAL(10,2) DEFAULT 0');
+    await addColumnSafely('shipments', 'height', 'DECIMAL(10,2) DEFAULT 0');
 
     // Add deleted_at columns for orders, invoices, quotations, and expenses
     await addColumnSafely('orders', 'deleted_at', 'TIMESTAMP NULL DEFAULT NULL');
     await addColumnSafely('invoices', 'deleted_at', 'TIMESTAMP NULL DEFAULT NULL');
+    await addColumnSafely('invoices', 'pdf_path', 'VARCHAR(500) DEFAULT NULL');
     await addColumnSafely('quotations', 'deleted_at', 'TIMESTAMP NULL DEFAULT NULL');
     await addColumnSafely('expenses', 'deleted_at', 'TIMESTAMP NULL DEFAULT NULL');
 
