@@ -45,7 +45,10 @@ app.use(cors({
   },
   credentials: true
 }));
-
+app.use((req, res, next) => {
+  console.log(`[REQUEST] ${req.method} ${req.url} - body keys: ${Object.keys(req.body || {})}`);
+  next();
+});
 // Rate limiting
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 500 });
 app.use('/api/', limiter);
