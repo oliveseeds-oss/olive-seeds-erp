@@ -2,7 +2,17 @@ const router = require('express').Router();
 const db = require('../utils/db');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const archiverModule = require('archiver');
-const archiver = archiverModule.default || archiverModule;
+const createZipArchive = (options) => {
+  if (archiverModule.ZipArchive) {
+    return new archiverModule.ZipArchive(options);
+  } else if (typeof archiverModule === 'function') {
+    return archiverModule('zip', options);
+  } else if (archiverModule.default && typeof archiverModule.default === 'function') {
+    return archiverModule.default('zip', options);
+  } else {
+    throw new Error('Unsupported archiver module exports');
+  }
+};
 const { google } = require('googleapis');
 const path = require('path');
 const fs = require('fs');
@@ -79,7 +89,7 @@ async function getDriveClient() {
 // ── HELPER: Generate backup ZIP buffer ──────────────────
 async function generateBackupBuffer() {
   return new Promise(async (resolve, reject) => {
-    const archive = archiver('zip', { zlib: { level: 6 } });
+    const archive = createZipArchive({ zlib: { level: 6 } });
     const buffers = [];
     archive.on('data', chunk => buffers.push(chunk));
     archive.on('end', () => resolve(Buffer.concat(buffers)));
@@ -375,7 +385,7 @@ router.get('/download', authenticate, requireAdmin, async (req, res) => {
       `attachment; filename="${filename}"`
     );
     res.setHeader('Cache-Control', 'no-cache');
-    const archive = archiver('zip', { zlib: { level: 6 } });
+    const archive = createZipArchive({ zlib: { level: 6 } });
     archive.on('error', (err) => {
       console.error('Archive error:', err);
       if (!res.headersSent) {
