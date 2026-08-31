@@ -290,7 +290,7 @@ router.get('/:id/pdf', authenticate, async (req, res) => {
     // Header
     let textX = 50;
     if (company?.logo_path) {
-      const logoFile = path.join(__dirname, '..', company.logo_path);
+      const logoFile = path.join(__dirname, '..', company.logo_path.replace(/^\//, ''));
       if (fs.existsSync(logoFile)) {
         doc.image(logoFile, 50, 45, { width: 50, height: 50 });
         textX = 110;
@@ -374,8 +374,9 @@ router.get('/:id/pdf', authenticate, async (req, res) => {
     y += 20;
     doc.fontSize(8).fillColor('#111827').text('For ' + (company?.company_name || 'Olive Seeds Design Studio'), 380, y, { align: 'right', width: 165 });
     y += 15;
-    if (creator?.signature_path) {
-      const sigFile = path.join(__dirname, '..', creator.signature_path);
+    const signaturePath = company?.default_signature_path || creator?.signature_path;
+    if (signaturePath) {
+      const sigFile = path.join(__dirname, '..', signaturePath.replace(/^\//, ''));
       if (fs.existsSync(sigFile)) {
         doc.image(sigFile, 450, y, { width: 80, height: 35 });
         y += 40;

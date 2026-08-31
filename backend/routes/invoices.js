@@ -286,11 +286,19 @@ router.get('/:id/pdf', authenticate, async (req, res) => {
     doc.pipe(res);
 
     // Header
-    doc.fontSize(20).fillColor('#1a5276').text(company?.company_name || 'Olive Seeds Design Studio', 50, 50);
+    let textX = 50;
+    if (company?.logo_path) {
+      const logoFile = path.join(__dirname, '..', company.logo_path.replace(/^\//, ''));
+      if (fs.existsSync(logoFile)) {
+        doc.image(logoFile, 50, 45, { width: 50, height: 50 });
+        textX = 110;
+      }
+    }
+    doc.fontSize(16).fillColor('#1a5276').text(company?.company_name || 'Olive Seeds Design Studio', textX, 45);
     doc.fontSize(8).fillColor('#555')
-       .text(company?.address || '', 50, 75)
-       .text(`GSTIN: ${company?.gstin || ''} | PAN: ${company?.pan || ''}`, 50, 85)
-       .text(`Email: ${company?.email || ''} | Phone: ${company?.phone || ''}`, 50, 95);
+       .text(company?.address || '', textX, 60)
+       .text(`GSTIN: ${company?.gstin || ''} | PAN: ${company?.pan || ''}`, textX, 70)
+       .text(`Email: ${company?.email || ''} | Phone: ${company?.phone || ''}`, textX, 80);
 
     // Invoice title
     const titleMap = { tax: 'TAX INVOICE', proforma: 'PROFORMA INVOICE', quotation: 'QUOTATION', commercial: 'COMMERCIAL INVOICE', credit_note: 'CREDIT NOTE', debit_note: 'DEBIT NOTE', delivery_challan: 'DELIVERY CHALLAN', retail: 'RETAIL INVOICE' };
@@ -356,9 +364,25 @@ router.get('/:id/pdf', authenticate, async (req, res) => {
 
     // Footer
     if (company?.terms_conditions) {
-      doc.fontSize(7).fillColor('#888').text('Terms & Conditions', 50, 750).text(company.terms_conditions, 50, 762, { width: 495 });
+      doc.fontSize(7).fillColor('#888').text('Terms & Conditions', 50, 720).text(company.terms_conditions, 50, 730, { width: 495 });
     }
-    doc.fontSize(8).fillColor('#555').text('Authorised Signatory', 400, 780, { align: 'right', width: 145 });
+    
+    // Signatory
+    const [[creator]] = await db.query('SELECT signature_path FROM users WHERE id = ?', [inv.created_by || 1]);
+    const signaturePath = company?.default_signature_path || creator?.signature_path;
+    let sigY = 730;
+    if (signaturePath) {
+      const sigFile = path.join(__dirname, '..', signaturePath.replace(/^\//, ''));
+      if (fs.existsSync(sigFile)) {
+        doc.image(sigFile, 450, sigY, { width: 80, height: 35 });
+        sigY += 40;
+      } else {
+        sigY += 40;
+      }
+    } else {
+      sigY += 40;
+    }
+    doc.fontSize(8).fillColor('#555').text('Authorised Signatory', 400, sigY, { align: 'right', width: 145 });
     doc.end();
   } catch (e) {
     console.error(e);

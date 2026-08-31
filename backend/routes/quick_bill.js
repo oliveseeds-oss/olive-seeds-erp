@@ -400,11 +400,19 @@ router.get('/:mode/:id/pdf', authenticate, async (req, res) => {
     doc.pipe(res);
 
     // Bill Title
-    doc.fontSize(20).fillColor('#1a1a2e').text(company?.company_name || 'Olive Seeds Design Studio', 40, 40);
+    let textX = 40;
+    if (company?.logo_path) {
+      const logoFile = path.join(__dirname, '..', company.logo_path.replace(/^\//, ''));
+      if (fs.existsSync(logoFile)) {
+        doc.image(logoFile, 40, 35, { width: 50, height: 50 });
+        textX = 100;
+      }
+    }
+    doc.fontSize(16).fillColor('#1a1a2e').text(company?.company_name || 'Olive Seeds Design Studio', textX, 40);
     doc.fontSize(8).fillColor('#555')
-       .text(company?.address || '', 40, 65)
-       .text(`GSTIN: ${company?.gstin || ''}`, 40, 75)
-       .text(`Phone: ${company?.phone || ''} | Email: ${company?.email || ''}`, 40, 85);
+       .text(company?.address || '', textX, 55)
+       .text(`GSTIN: ${company?.gstin || ''}`, textX, 65)
+       .text(`Phone: ${company?.phone || ''} | Email: ${company?.email || ''}`, textX, 75);
 
     doc.fontSize(16).fillColor('#1a1a2e').text('QUICK RECEIPT', 400, 40, { align: 'right' });
     doc.fontSize(9).fillColor('#333')
@@ -463,7 +471,23 @@ router.get('/:mode/:id/pdf', authenticate, async (req, res) => {
     addTotal('Subtotal:', `₹${parseFloat(bill.subtotal || 0).toFixed(2)}`);
     if (bill.gst_amount > 0) addTotal(`GST (${bill.gst_percent}%):`, `₹${parseFloat(bill.gst_amount).toFixed(2)}`);
     addTotal('TOTAL:', `₹${parseFloat(bill.total || 0).toFixed(2)}`, true);
-
+    
+    // Signatory
+    const [[creator]] = await db.query('SELECT signature_path FROM users WHERE id = ?', [bill.created_by || 1]);
+    const signaturePath = company?.default_signature_path || creator?.signature_path;
+    let sigY = y + 20;
+    if (signaturePath) {
+      const sigFile = path.join(__dirname, '..', signaturePath.replace(/^\//, ''));
+      if (fs.existsSync(sigFile)) {
+        doc.image(sigFile, 450, sigY, { width: 80, height: 35 });
+        sigY += 40;
+      } else {
+        sigY += 40;
+      }
+    } else {
+      sigY += 40;
+    }
+    doc.fontSize(8).fillColor('#555').text('Authorised Signatory', 400, sigY, { align: 'right', width: 145 });
     doc.end();
   } catch (err) {
     console.error('PDF generation error:', err);

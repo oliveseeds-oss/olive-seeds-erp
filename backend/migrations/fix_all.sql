@@ -61,6 +61,7 @@ ALTER TABLE company_settings ADD COLUMN upi_id VARCHAR(100);
 ALTER TABLE company_settings ADD COLUMN invoice_footer TEXT;
 
 -- products
+ALTER TABLE products ADD COLUMN finish VARCHAR(100) DEFAULT NULL;
 ALTER TABLE products ADD COLUMN sac_code VARCHAR(20);
 ALTER TABLE products ADD COLUMN bulk_min_qty INT DEFAULT 1;
 ALTER TABLE products ADD COLUMN marketplace_website BOOLEAN DEFAULT FALSE;

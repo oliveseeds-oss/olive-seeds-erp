@@ -126,6 +126,7 @@ async function runMigrations() {
       category_id INT,
       material VARCHAR(200),
       color VARCHAR(100),
+      finish VARCHAR(100),
       size VARCHAR(100),
       thickness VARCHAR(50),
       weight DECIMAL(10,3),
@@ -748,6 +749,7 @@ async function runMigrations() {
     await addColumnSafely('products', 'bulk_min_qty', 'INT DEFAULT 1');
     await addColumnSafely('products', 'marketplace_website', 'BOOLEAN DEFAULT FALSE');
     await addColumnSafely('products', 'is_active', 'BOOLEAN DEFAULT TRUE');
+    await addColumnSafely('products', 'finish', 'VARCHAR(100) DEFAULT NULL');
 
     // Expenses
     await addColumnSafely('expenses', 'gst_amount', 'DECIMAL(15,2) DEFAULT 0');
