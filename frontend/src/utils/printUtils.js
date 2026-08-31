@@ -344,11 +344,11 @@ export function buildBillHTML(data, paperSize = 'A4', settings = {}, userSig = n
     ? `<img
         src="${finalSig}"
         alt="Signature"
-        style="max-height:50px;max-width:160px;
+        style="max-height:85px;max-width:240px;
         object-fit:contain;display:block;margin:0 auto;"
         onerror="this.style.display='none'"
       >`
-    : `<div style="height:50px;"></div>`;
+    : `<div style="height:85px;"></div>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -847,11 +847,11 @@ export function buildQuotationHTML(data, settings = {}, staffObj = {}, logoB64 =
     ? `<img
         src="${finalSig}"
         alt="Signature"
-        style="max-height:50px;max-width:160px;
+        style="max-height:85px;max-width:240px;
         object-fit:contain;display:block;margin:0 auto;"
         onerror="this.style.display='none'"
       >`
-    : `<div style="height:50px;"></div>`;
+    : `<div style="height:85px;"></div>`;
 
   const itemRows = (data.items || []).map((item, i) => {
     const pName = item.product_name || item.productName || item.name || '';
