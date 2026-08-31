@@ -14,8 +14,32 @@ app.set('trust proxy', 1);
 
 // Security
 app.use(helmet({ contentSecurityPolicy: false }));
+const allowedOrigins = [
+  'https://billapp.oliveseedsdesignstudio.com',
+  'https://www.billapp.oliveseedsdesignstudio.com',
+  'https://apiapp.oliveseedsdesignstudio.com',
+  'https://adminosspanel.oliveseedsdesignstudio.com',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002'
+];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    const domainMatch = origin.endsWith('.oliveseedsdesignstudio.com') || origin === 'https://oliveseedsdesignstudio.com';
+    if (allowedOrigins.indexOf(origin) !== -1 || domainMatch) {
+      return callback(null, true);
+    }
+    if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
+      return callback(null, true);
+    }
+    // Also allow wildcard if FRONTEND_URL is not set or is "*"
+    if (!process.env.FRONTEND_URL || process.env.FRONTEND_URL === '*') {
+      return callback(null, true);
+    }
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
 
