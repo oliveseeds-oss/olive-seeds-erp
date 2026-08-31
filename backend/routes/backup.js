@@ -1,7 +1,8 @@
 const router = require('express').Router();
 const db = require('../utils/db');
 const { authenticate, requireAdmin } = require('../middleware/auth');
-const archiver = require('archiver');
+const archiverModule = require('archiver');
+const archiver = archiverModule.default || archiverModule;
 const { google } = require('googleapis');
 const path = require('path');
 const fs = require('fs');

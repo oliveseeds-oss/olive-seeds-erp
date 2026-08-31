@@ -2,6 +2,11 @@ const router = require('express').Router();
 const db = require('../utils/db');
 const { authenticate, canWrite, requireAdmin } = require('../middleware/auth');
 
+const formatDate = (d) => {
+  if (!d) return null;
+  return d.split('T')[0];
+};
+
 // Get all digital invoices
 router.get('/', authenticate, async (req, res) => {
   try {
@@ -69,9 +74,9 @@ router.post('/', authenticate, canWrite, async (req, res) => {
         total, paid_amount, payment_mode, payment_status, notes, internal_notes, status, created_by
       ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
-        invoiceNumber, invoice_date || new Date().toISOString().split('T')[0], due_date || null, customer_id || null,
+        invoiceNumber, formatDate(invoice_date) || new Date().toISOString().split('T')[0], formatDate(due_date) || null, customer_id || null,
         customer_name, customer_email || null, customer_phone || null, customer_gstin || null, billing_address || null,
-        delivery_method || 'Instant Download', download_link || null, download_password || null, link_expiry || null,
+        delivery_method || 'Instant Download', download_link || null, download_password || null, formatDate(link_expiry) || null,
         download_limit, file_size || null, version_number || null, subtotal, discount, cgst, sgst, igst, total_tax,
         total, payment_status === 'paid' ? total : 0, payment_mode || 'UPI', payment_status || 'unpaid',
         notes || null, internal_notes || null, status || 'draft', req.user.id
@@ -144,8 +149,8 @@ router.put('/:id', authenticate, canWrite, async (req, res) => {
            subtotal=?, total_tax=?, total=?, paid_amount=?, payment_mode=?, payment_status=?, notes=?, internal_notes=?, status=?
        WHERE id=?`,
       [
-        invoice_date || new Date().toISOString().split('T')[0], due_date || null, customer_id || null, customer_name, customer_email, customer_phone || null, customer_gstin || null, billing_address || null,
-        delivery_method, download_link || null, download_password || null, link_expiry || null, download_limit, file_size || null, version_number || null,
+        formatDate(invoice_date) || new Date().toISOString().split('T')[0], formatDate(due_date) || null, customer_id || null, customer_name, customer_email, customer_phone || null, customer_gstin || null, billing_address || null,
+        delivery_method, download_link || null, download_password || null, formatDate(link_expiry) || null, download_limit, file_size || null, version_number || null,
         subtotal, total_tax, total, payment_status === 'paid' ? total : 0, payment_mode, payment_status, notes || null, internal_notes || null, status, req.params.id
       ]
     );
