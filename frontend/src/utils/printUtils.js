@@ -107,6 +107,12 @@ export async function fetchImageAsBase64(api, pathOrUrl) {
     return null;
   }
 }
+export function getAbsoluteUrl(pathOrUrl) {
+  if (!pathOrUrl) return '';
+  if (pathOrUrl.startsWith('http') || pathOrUrl.startsWith('data:')) return pathOrUrl;
+  const origin = window.location.origin.replace(':3002', ':5000').replace(':3000', ':5000');
+  return `${origin}${pathOrUrl}`;
+}
 
 // ── BUILD BILL HTML SAFELY ─────────────────────────
 export function buildBillHTML(data, paperSize = 'A4', settings = {}, userSig = null, logoB64 = null) {
@@ -215,7 +221,7 @@ export function buildBillHTML(data, paperSize = 'A4', settings = {}, userSig = n
 
   const finalLogo = logoB64 || data.logoBase64 || settings.logo_path;
   const logoHTML = finalLogo
-    ? `<img src="${finalLogo}"
+    ? `<img src="${getAbsoluteUrl(finalLogo)}"
         alt="OLIVE SEEDS | Design Studio"
         style="max-height: 60px; max-width: 240px; object-fit: contain; display: block;">`
     : `<div style="font-size: 16pt; font-weight: 800; color: #1a1a3a; letter-spacing: 0.5px;">
@@ -224,7 +230,7 @@ export function buildBillHTML(data, paperSize = 'A4', settings = {}, userSig = n
 
   const finalSig = userSig || data.signatureBase64 || settings.default_signature_path;
   const signatureHTML = finalSig
-    ? `<img src="${finalSig}" style="max-height: 55px; max-width: 170px; object-fit: contain; display: block; margin: 0 auto;">`
+    ? `<img src="${getAbsoluteUrl(finalSig)}" style="max-height: 55px; max-width: 170px; object-fit: contain; display: block; margin: 0 auto;">`
     : `<div style="height: 45px;"></div>`;
 
   return `<!DOCTYPE html>
@@ -691,7 +697,7 @@ export function buildQuotationHTML(data, settings = {}, staffObj = {}, logoB64 =
 
   const finalLogo = logoB64 || data.logoBase64 || settings.logo_path;
   const logoHTML = finalLogo
-    ? `<img src="${finalLogo}"
+    ? `<img src="${getAbsoluteUrl(finalLogo)}"
         alt="OLIVE SEEDS | Design Studio"
         style="max-height: 60px; max-width: 240px; object-fit: contain; display: block;">`
     : `<div style="font-size: 16pt; font-weight: 800; color: #1a1a3a; letter-spacing: 0.5px;">
@@ -700,7 +706,7 @@ export function buildQuotationHTML(data, settings = {}, staffObj = {}, logoB64 =
 
   const finalSig = sigB64 || data.signatureBase64 || settings.default_signature_path;
   const signatureHTML = finalSig
-    ? `<img src="${finalSig}" style="max-height: 55px; max-width: 170px; object-fit: contain; display: block; margin: 0 auto;">`
+    ? `<img src="${getAbsoluteUrl(finalSig)}" style="max-height: 55px; max-width: 170px; object-fit: contain; display: block; margin: 0 auto;">`
     : `<div style="height: 45px;"></div>`;
 
   const itemRows = (data.items || []).map((item, i) => {
