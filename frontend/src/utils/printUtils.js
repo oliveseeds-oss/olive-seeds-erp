@@ -1,41 +1,59 @@
 // ── OPEN PRINT WINDOW ──────────────────────────────
 export function openPrintWindow(htmlString) {
-  setTimeout(() => {
-    try {
-      const printWindow = window.open(
-        '',
-        'print_' + Date.now(),
-        'width=950,height=800,scrollbars=yes,resizable=yes'
-      );
-      if (!printWindow) {
-        alert(
-          'Popup blocked! Please allow popups for this site in your browser settings, then try again.'
-        );
-        return;
+  try {
+    // Remove any existing print iframe
+    const oldIframe = document.getElementById('erp-print-iframe');
+    if (oldIframe) {
+      oldIframe.remove();
+    }
+
+    const iframe = document.createElement('iframe');
+    iframe.id = 'erp-print-iframe';
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    iframe.style.zIndex = '-9999';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(htmlString);
+    doc.close();
+
+    const triggerPrint = () => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (err) {
+        console.error('Print iframe error:', err);
       }
+    };
+
+    // Give time for images and CSS to render
+    if (iframe.contentWindow.document.readyState === 'complete') {
+      setTimeout(triggerPrint, 400);
+    } else {
+      iframe.contentWindow.onload = () => {
+        setTimeout(triggerPrint, 400);
+      };
+    }
+  } catch (err) {
+    console.error('Print window error:', err);
+    // Safe popup fallback WITHOUT auto-close timer that closes the browser
+    const printWindow = window.open('', '_blank', 'width=950,height=800,scrollbars=yes,resizable=yes');
+    if (printWindow) {
       printWindow.document.open();
       printWindow.document.write(htmlString);
       printWindow.document.close();
-      
-      printWindow.onload = function() {
-        setTimeout(() => {
-          printWindow.focus();
-          printWindow.print();
-          printWindow.close();
-        }, 500);
-      };
-      // Fallback
       setTimeout(() => {
-        if (printWindow && !printWindow.closed) {
-          printWindow.focus();
-          printWindow.print();
-        }
-      }, 1500);
-    } catch (err) {
-      console.error('Print window error:', err);
-      alert('Print failed: ' + err.message);
+        printWindow.focus();
+        printWindow.print();
+      }, 500);
     }
-  }, 100);
+  }
 }
 
 // ── DOWNLOAD PDF BLOB ──────────────────────────────

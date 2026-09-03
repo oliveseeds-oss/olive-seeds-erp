@@ -252,7 +252,7 @@ export default function Quotations() {
       await downloadPDFBlob(api, `/quotations/${id}/pdf`, `Quotation-${quo?.quotation_number || id}.pdf`);
       toast.success('PDF downloaded successfully');
     } catch (e) {
-      toast.error('Failed to download PDF');
+      toast.error(e?.message || 'Failed to download PDF');
     }
   };
 

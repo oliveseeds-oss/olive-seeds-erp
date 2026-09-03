@@ -2,6 +2,8 @@ const router = require('express').Router();
 const db = require('../utils/db');
 const { authenticate, canWrite, canModify, requireAdmin } = require('../middleware/auth');
 const PDFDocument = require('pdfkit');
+const path = require('path');
+const fs = require('fs');
 
 // Get all quotations
 router.get('/', authenticate, async (req, res) => {
@@ -183,6 +185,7 @@ router.put('/:id', authenticate, canWrite, async (req, res) => {
 // Hard Delete (admin only)
 router.delete('/:id', authenticate, requireAdmin, async (req, res) => {
   try {
+    await db.query('DELETE FROM quotation_items WHERE quotation_id=?', [req.params.id]);
     await db.query('DELETE FROM quotations WHERE id=?', [req.params.id]);
     res.json({ message: 'Deleted' });
   } catch (err) {
@@ -275,7 +278,7 @@ router.post('/:id/convert-order', authenticate, canWrite, async (req, res) => {
 // Quotation PDF
 router.get('/:id/pdf', authenticate, async (req, res) => {
   try {
-    const [quos] = await db.query('SELECT * FROM quotations WHERE id=?', [req.params.id]);
+    const [quos] = await db.query('SELECT * FROM quotations WHERE id=? OR quotation_number=?', [req.params.id, req.params.id]);
     if (!quos.length) return res.status(404).json({ error: 'Quotation not found' });
     const quo = quos[0];
     const [items] = await db.query('SELECT * FROM quotation_items WHERE quotation_id=?', [quo.id]);
@@ -284,16 +287,28 @@ router.get('/:id/pdf', authenticate, async (req, res) => {
 
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="${quo.quotation_number}.pdf"`);
+    res.setHeader('Content-Disposition', `inline; filename="${quo.quotation_number || 'quotation'}.pdf"`);
     doc.pipe(res);
 
     // Header
     let textX = 50;
     if (company?.logo_path) {
-      const logoFile = path.join(__dirname, '..', company.logo_path.replace(/^\//, ''));
-      if (fs.existsSync(logoFile)) {
-        doc.image(logoFile, 50, 45, { width: 50, height: 50 });
-        textX = 110;
+      const possibleLogoPaths = [
+        path.join(__dirname, '..', company.logo_path.replace(/^\//, '')),
+        path.join('/app', company.logo_path.replace(/^\//, '')),
+        path.join(__dirname, '../uploads/company', path.basename(company.logo_path)),
+        path.join('/app/uploads/company', path.basename(company.logo_path))
+      ];
+      for (const logoFile of possibleLogoPaths) {
+        if (fs.existsSync(logoFile)) {
+          try {
+            doc.image(logoFile, 50, 45, { width: 50, height: 50 });
+            textX = 110;
+            break;
+          } catch (imgErr) {
+            console.warn('PDFKit logo load warning:', imgErr.message);
+          }
+        }
       }
     }
     doc.fontSize(14).fillColor('#111827').text(company?.company_name || 'Olive Seeds Design Studio', textX, 45);
@@ -305,7 +320,7 @@ router.get('/:id/pdf', authenticate, async (req, res) => {
     doc.fontSize(16).fillColor('#111827').text('QUOTATION', 350, 45, { align: 'right' });
     doc.fontSize(8).fillColor('#4B5563')
        .text(`Quo No: ${quo.quotation_number}`, 350, 65, { align: 'right' })
-       .text(`Date: ${new Date(quo.quotation_date).toLocaleDateString('en-IN')}`, 350, 75, { align: 'right' })
+       .text(`Date: ${quo.quotation_date ? new Date(quo.quotation_date).toLocaleDateString('en-IN') : 'N/A'}`, 350, 75, { align: 'right' })
        .text(`Valid Until: ${quo.valid_until ? new Date(quo.valid_until).toLocaleDateString('en-IN') : 'N/A'}`, 350, 85, { align: 'right' });
 
     // Divider
@@ -314,7 +329,7 @@ router.get('/:id/pdf', authenticate, async (req, res) => {
     // Bill To
     doc.fontSize(10).fillColor('#111827').text('Client Details:', 50, 125);
     doc.fontSize(8).fillColor('#4B5563')
-       .text(quo.customer_name, 50, 140)
+       .text(quo.customer_name || 'Client', 50, 140)
        .text(`Company: ${quo.customer_company || 'N/A'}`, 50, 150)
        .text(`Email: ${quo.customer_email || 'N/A'} | Phone: ${quo.customer_phone || 'N/A'}`, 50, 160);
 
@@ -331,56 +346,92 @@ router.get('/:id/pdf', authenticate, async (req, res) => {
 
     // Items rows
     let y = 210;
-    items.forEach((item) => {
+    (items || []).forEach((item) => {
+      if (y > 720) {
+        doc.addPage();
+        y = 50;
+      }
       doc.fontSize(8).fillColor('#4B5563')
-         .text(item.product_name, 50, y)
+         .text(item.product_name || '', 50, y)
          .text(item.size || 'N/A', 240, y)
-         .text(String(item.quantity), 320, y)
-         .text(`Rs. ${parseFloat(item.unit_price).toFixed(2)}`, 380, y)
-         .text(`${item.gst_percent}%`, 440, y)
-         .text(`Rs. ${parseFloat(item.total).toFixed(2)}`, 485, y, { width: 60, align: 'right' });
+         .text(String(item.quantity || 0), 320, y)
+         .text(`Rs. ${parseFloat(item.unit_price || 0).toFixed(2)}`, 380, y)
+         .text(`${item.gst_percent || 0}%`, 440, y)
+         .text(`Rs. ${parseFloat(item.total || 0).toFixed(2)}`, 485, y, { width: 60, align: 'right' });
       y += 18;
     });
 
     doc.moveTo(50, y).lineTo(545, y).strokeColor('#E5E7EB').lineWidth(1).stroke();
     y += 10;
 
+    if (y > 670) {
+      doc.addPage();
+      y = 50;
+    }
+
     // Totals
     doc.fontSize(8).fillColor('#111827')
        .text('Subtotal:', 380, y)
-       .text(`Rs. ${parseFloat(quo.subtotal).toFixed(2)}`, 485, y, { width: 60, align: 'right' });
+       .text(`Rs. ${parseFloat(quo.subtotal || 0).toFixed(2)}`, 485, y, { width: 60, align: 'right' });
     y += 12;
     doc.text('Tax (GST):', 380, y)
-       .text(`Rs. ${parseFloat(quo.total_tax).toFixed(2)}`, 485, y, { width: 60, align: 'right' });
+       .text(`Rs. ${parseFloat(quo.total_tax || 0).toFixed(2)}`, 485, y, { width: 60, align: 'right' });
     y += 12;
     doc.text('Shipping Estimate:', 380, y)
-       .text(`Rs. ${parseFloat(quo.shipping_estimate).toFixed(2)}`, 485, y, { width: 60, align: 'right' });
+       .text(`Rs. ${parseFloat(quo.shipping_estimate || 0).toFixed(2)}`, 485, y, { width: 60, align: 'right' });
     y += 15;
     doc.fontSize(10).text('Total Quote:', 380, y)
-       .text(`Rs. ${parseFloat(quo.total).toFixed(2)}`, 485, y, { width: 60, align: 'right' });
+       .text(`Rs. ${parseFloat(quo.total || 0).toFixed(2)}`, 485, y, { width: 60, align: 'right' });
     y += 30;
+
+    if (y > 680) {
+      doc.addPage();
+      y = 50;
+    }
 
     // Terms / Note
     if (quo.notes) {
       doc.fontSize(8).fillColor('#4B5563').text(`Notes: ${quo.notes}`, 50, y);
-      y += 30;
+      y += 25;
     }
     if (quo.terms) {
       doc.fontSize(8).fillColor('#4B5563').text(`Terms & Conditions:\n${quo.terms}`, 50, y);
-      y += 50;
+      y += 40;
+    }
+
+    if (y > 680) {
+      doc.addPage();
+      y = 50;
     }
 
     // Signatory Block
-    y += 20;
+    y += 15;
     doc.fontSize(8).fillColor('#111827').text('For ' + (company?.company_name || 'Olive Seeds Design Studio'), 380, y, { align: 'right', width: 165 });
     y += 15;
     const signaturePath = company?.default_signature_path || creator?.signature_path;
     if (signaturePath) {
-      const sigFile = path.join(__dirname, '..', signaturePath.replace(/^\//, ''));
-      if (fs.existsSync(sigFile)) {
-        doc.image(sigFile, 450, y, { width: 80, height: 35 });
-        y += 40;
-      } else {
+      const possibleSigPaths = [
+        path.join(__dirname, '..', signaturePath.replace(/^\//, '')),
+        path.join('/app', signaturePath.replace(/^\//, '')),
+        path.join(__dirname, '../uploads/company', path.basename(signaturePath)),
+        path.join('/app/uploads/company', path.basename(signaturePath)),
+        path.join(__dirname, '../uploads/signatures', path.basename(signaturePath)),
+        path.join('/app/uploads/signatures', path.basename(signaturePath))
+      ];
+      let sigLoaded = false;
+      for (const sigFile of possibleSigPaths) {
+        if (fs.existsSync(sigFile)) {
+          try {
+            doc.image(sigFile, 450, y, { width: 80, height: 35 });
+            y += 40;
+            sigLoaded = true;
+            break;
+          } catch (sigErr) {
+            console.warn('PDFKit signature load warning:', sigErr.message);
+          }
+        }
+      }
+      if (!sigLoaded) {
         y += 40;
       }
     } else {
@@ -388,13 +439,15 @@ router.get('/:id/pdf', authenticate, async (req, res) => {
     }
     doc.fontSize(8).fillColor('#4B5563').text('Authorized Signatory', 380, y, { align: 'right', width: 165 });
 
-    y += 30;
+    y += 25;
     doc.fontSize(8).fillColor('#9CA3AF').text('This is a quotation, not a tax invoice', 50, y, { align: 'center' });
 
     doc.end();
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error generating PDF' });
+    console.error('PDF Generation Error:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Error generating PDF: ' + err.message });
+    }
   }
 });
 
