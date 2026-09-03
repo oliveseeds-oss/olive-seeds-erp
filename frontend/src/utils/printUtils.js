@@ -10,12 +10,11 @@ export function openPrintWindow(htmlString) {
     const iframe = document.createElement('iframe');
     iframe.id = 'erp-print-iframe';
     iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
+    iframe.style.top = '-10000px';
+    iframe.style.left = '-10000px';
+    iframe.style.width = '210mm';
+    iframe.style.height = '297mm';
     iframe.style.border = 'none';
-    iframe.style.zIndex = '-9999';
     document.body.appendChild(iframe);
 
     const doc = iframe.contentWindow.document;
